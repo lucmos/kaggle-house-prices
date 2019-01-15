@@ -30,6 +30,9 @@ test_df = pd.read_csv(Path(dataset_dir, 'test.csv'))
 
 # %% ~~~~~ Removing outliers ~~~~~
 # As suggested by many participants, we remove several outliers
+# %% Dropping outliers
+out = [30, 88, 462, 631, 1322]
+train_df = train_df.drop(train_df.index[out])
 train_df.drop(train_df[(train_df['OverallQual'] < 5) & (train_df['SalePrice'] > 200000)].index, inplace=True)
 train_df.drop(train_df[(train_df['GrLivArea'] > 4000) & (train_df['SalePrice'] < 300000)].index, inplace=True)
 train_df.reset_index(drop=True, inplace=True)
@@ -529,8 +532,8 @@ complete_df = ohe(complete_df, 'MasVnrType')
 #        Po   Poor
 #
 # -> This is a categorical feature, but with an order which should be preserved!
-complete_df['ExterQual'] = complete_df['ExterQual'].map(qualities_dict).astype(int)
-
+# complete_df['ExterQual'] = complete_df['ExterQual'].map(qualities_dict).astype(int)
+complete_df = ints_encoding(complete_df, 'ExterQual', qualities_dict)
 
 # %% ExterCond: Evaluates the present condition of the material on the exterior
 #
@@ -541,7 +544,7 @@ complete_df['ExterQual'] = complete_df['ExterQual'].map(qualities_dict).astype(i
 #        Po   Poor
 #
 # -> This is a categorical feature, but with an order which should be preserved!
-complete_df['ExterCond'] = complete_df['ExterCond'].map(qualities_dict).astype(int)
+complete_df = ints_encoding(complete_df, 'ExterCond', qualities_dict)
 
 
 # %% Foundation: Type of foundation
@@ -577,7 +580,7 @@ complete_df.loc[2522, 'BsmtCond'] = 'Gd'
 #        NA   No Basement
 #
 complete_df['BsmtQual'] = complete_df['BsmtQual'].fillna(NONE_VALUE)
-complete_df['BsmtQual'] = complete_df['BsmtQual'].map(qualities_dict).astype(int)
+complete_df = ints_encoding(complete_df, 'BsmtQual', qualities_dict)
 
 # %% BsmtCond: Evaluates the general condition of the basement
 #
@@ -589,7 +592,7 @@ complete_df['BsmtQual'] = complete_df['BsmtQual'].map(qualities_dict).astype(int
 #        NA   No Basement
 #
 complete_df['BsmtCond'] = complete_df['BsmtCond'].fillna(NONE_VALUE)
-complete_df['BsmtCond'] = complete_df['BsmtCond'].map(qualities_dict).astype(int)
+complete_df = ints_encoding(complete_df, 'BsmtCond', qualities_dict)
 
 
 # %% BsmtExposure: Refers to walkout or garden level walls
@@ -602,8 +605,7 @@ complete_df['BsmtCond'] = complete_df['BsmtCond'].map(qualities_dict).astype(int
 #
 # -> TODO Gestisci differenza fra No e NA (?)
 complete_df['BsmtExposure'] = complete_df['BsmtExposure'].fillna(NONE_VALUE)
-complete_df['BsmtExposure'] = complete_df['BsmtExposure'].map(
-    {NONE_VALUE: 0, 'No': 1, 'Mn': 2, 'Av': 3, 'Gd': 4}).astype(int)
+complete_df = ints_encoding(complete_df, 'BsmtExposure', {NONE_VALUE: 0, 'No': 1, 'Mn': 2, 'Av': 3, 'Gd': 4})
 
 
 # %% BsmtFinType1: Rating of basement finished area
@@ -617,7 +619,7 @@ complete_df['BsmtExposure'] = complete_df['BsmtExposure'].map(
 #        NA   No Basement
 #
 complete_df['BsmtFinType1'] = complete_df['BsmtFinType1'].fillna(NONE_VALUE)
-complete_df['BsmtFinType1'] = complete_df['BsmtFinType1'].map(fin_qualities_dict).astype(int)
+complete_df = ints_encoding(complete_df, 'BsmtFinType1', fin_qualities_dict)
 
 
 # %% BsmtFinSF1: Type 1 finished square feet
@@ -636,7 +638,7 @@ complete_df['BsmtFinSF1'] = complete_df['BsmtFinSF1'].fillna(0).astype(int)
 #        NA   No Basement
 #
 complete_df['BsmtFinType2'] = complete_df['BsmtFinType2'].fillna(NONE_VALUE)
-complete_df['BsmtFinType2'] = complete_df['BsmtFinType2'].map(fin_qualities_dict).astype(int)
+complete_df = ints_encoding(complete_df, 'BsmtFinType2', fin_qualities_dict)
 
 
 # %% BsmtFinSF2: Type 2 finished square feet
@@ -677,7 +679,7 @@ columns_to_drop.extend(["Heating_{}".format(x) for x in ["Floor", "OthW"]])
 #        Fa   Fair
 #        Po   Poor
 #
-complete_df['HeatingQC'] = complete_df['HeatingQC'].map(qualities_dict).astype(int)
+complete_df = ints_encoding(complete_df, 'HeatingQC', qualities_dict)
 
 
 # %% CentralAir: Central air conditioning
@@ -759,7 +761,7 @@ complete_df['BsmtHalfBath'] = complete_df['BsmtHalfBath'].fillna(0).astype(int)
 # -> Counter({'TA': 1492, 'Gd': 1150, 'Ex': 203, 'Fa': 70, nan: 1})
 # -> Let's fill the single NaN value with the most common one (that also stands for 'average'!)
 complete_df['KitchenQual'] = complete_df['KitchenQual'].fillna('TA')
-complete_df['KitchenQual'] = complete_df['KitchenQual'].map(qualities_dict).astype(int)
+complete_df = ints_encoding(complete_df, 'KitchenQual', qualities_dict)
 
 
 # %% TotRmsAbvGrd: Total rooms above grade (does not include bathrooms)
@@ -781,8 +783,7 @@ complete_df['KitchenQual'] = complete_df['KitchenQual'].map(qualities_dict).asty
 # -> Counter({'Typ': 2715, 'Min2': 70, 'Min1': 64, 'Mod': 35, 'Maj1': 19, 'Maj2': 9, 'Sev': 2, nan: 2})
 # -> Let's assume that the NaN values here are 'Typ' (that also stands for 'typical'!)
 complete_df['Functional'] = complete_df['Functional'].fillna('Typ')
-complete_df['Functional'] = complete_df['Functional'].map(
-    {NONE_VALUE: 0, 'Sal': 1, 'Sev': 2, 'Maj2': 3, 'Maj1': 4, 'Mod': 5, 'Min2': 6, 'Min1': 7, 'Typ': 8}).astype(int)
+complete_df = ints_encoding(complete_df, 'Functional',  {NONE_VALUE: 0, 'Sal': 1, 'Sev': 2, 'Maj2': 3, 'Maj1': 4, 'Mod': 5, 'Min2': 6, 'Min1': 7, 'Typ': 8})
 
 
 # %% Fireplaces && FireplaceQu
@@ -805,7 +806,9 @@ complete_df['FireplaceIsPresent'] = (complete_df['Fireplaces'] > 0) * 1
 # -> Now, let's map the NaN values of 'FireplaceQu' to NONE_VALUE,
 #    which will be mapped to 0 meaning there's no fireplace.
 # -> We can do this since the rows with false 'HasFireplaces' are the same with NaN 'FireplaceQu'!
-complete_df['FireplaceQu'] = complete_df['FireplaceQu'].fillna(NONE_VALUE).map(qualities_dict).astype(int)
+complete_df['FireplaceQu'] = complete_df['FireplaceQu'].fillna(NONE_VALUE)
+complete_df = ints_encoding(complete_df, 'FireplaceQu', qualities_dict)
+
 # TODO Here 'FA' means that there's a fireplace in the basement, so THERE IS A BASEMENT. Check for collisions!
 
 
@@ -843,8 +846,7 @@ complete_df["GarageIsPresent"] = (complete_df["GarageYrBlt"] > 0) * 1
 complete_df.loc[2124, 'GarageFinish'] = complete_df['GarageFinish'].mode()[0]
 complete_df.loc[2574, 'GarageFinish'] = complete_df['GarageFinish'].mode()[0]
 complete_df["GarageFinish"].fillna(NONE_VALUE, inplace=True)
-complete_df['GarageFinish'] = complete_df['GarageFinish'].map(
-    {NONE_VALUE: 0, "Unf": 1, "RFn": 2, "Fin": 3}).astype(int)
+complete_df = ints_encoding(complete_df, 'GarageFinish', {NONE_VALUE: 0, "Unf": 1, "RFn": 2, "Fin": 3})
 
 
 # %% GarageCars: Size of garage in car capacity
@@ -872,7 +874,7 @@ complete_df["GarageArea"] = complete_df["GarageArea"].fillna(0).astype(int)
 complete_df.loc[2124, 'GarageQual'] = complete_df['GarageQual'].mode()[0]
 complete_df.loc[2574, 'GarageQual'] = complete_df['GarageQual'].mode()[0]
 complete_df["GarageQual"].fillna(NONE_VALUE, inplace=True)
-complete_df['GarageQual'] = complete_df['GarageQual'].map(qualities_dict).astype(int)
+complete_df = ints_encoding(complete_df, 'GarageQual', qualities_dict)
 
 
 # %% GarageCond: Garage condition
@@ -887,7 +889,7 @@ complete_df['GarageQual'] = complete_df['GarageQual'].map(qualities_dict).astype
 complete_df.loc[2124, 'GarageCond'] = complete_df['GarageCond'].mode()[0]
 complete_df.loc[2574, 'GarageCond'] = complete_df['GarageCond'].mode()[0]
 complete_df["GarageCond"].fillna(NONE_VALUE, inplace=True)
-complete_df['GarageCond'] = complete_df['GarageCond'].map(qualities_dict).astype(int)
+complete_df = ints_encoding(complete_df, 'GarageCond', qualities_dict)
 
 
 # %% PavedDrive: Paved driveway
@@ -942,7 +944,7 @@ complete_df.loc[2418, 'PoolQC'] = 'Fa'
 complete_df.loc[2501, 'PoolQC'] = 'Gd'
 complete_df.loc[2597, 'PoolQC'] = 'Fa'
 complete_df['PoolQC'].fillna(NONE_VALUE, inplace=True)
-complete_df['PoolQC'] = complete_df['PoolQC'].map({NONE_VALUE: 0, 'Fa': 1, 'TA': 2, 'Gd': 3, 'Ex': 4}).astype(int)
+complete_df = ints_encoding(complete_df, 'PoolQC', {NONE_VALUE: 0, 'Fa': 1, 'TA': 2, 'Gd': 3, 'Ex': 4})
 complete_df['PollIsPresent'] = (complete_df['PoolArea'] > 0) * 1
 
 # columns_to_drop.extend(['PoolArea', 'PoolQC']) # TODO una casa con una megapiscina vale sicuro di più
@@ -960,7 +962,7 @@ complete_df['PollIsPresent'] = (complete_df['PoolArea'] > 0) * 1
 # -> Counter({nan: 2345, 'MnPrv': 329, 'GdPrv': 118, 'GdWo': 112, 'MnWw': 12})
 # -> Let's map the NaN values to NONE_VALUE which will then be mapped to a 0 quality.
 complete_df['Fence'].fillna(NONE_VALUE, inplace=True)
-complete_df['Fence'] = complete_df['Fence'].map({NONE_VALUE: 0, 'MnWw': 1, 'GdWo': 2, 'MnPrv': 3, 'GdPrv': 4}).astype(int)
+complete_df = ints_encoding(complete_df, 'Fence', {NONE_VALUE: 0, 'MnWw': 1, 'GdWo': 2, 'MnPrv': 3, 'GdPrv': 4})
 
 
 # %% MiscFeature && MiscVal
@@ -1015,8 +1017,7 @@ complete_df['MoSold'] = complete_df['MoSold'].astype(int)
 # -> 'Con': 5, nan: 1})
 # -> Let's fill the single NaN value to the most common one (WD)
 complete_df['SaleType'] = complete_df['SaleType'].fillna('WD')
-complete_df['SaleType'] = complete_df['SaleType'].map(
-    {'WD': 9, 'CWD': 8, 'VWD': 7, 'New': 6, 'COD': 5, 'Con': 4, 'ConLw': 3, 'ConLI': 2, 'ConLD': 1, 'Oth': 0})
+complete_df = ints_encoding(complete_df, 'SaleType', {'WD': 9, 'CWD': 8, 'VWD': 7, 'New': 6, 'COD': 5, 'Con': 4, 'ConLw': 3, 'ConLI': 2, 'ConLD': 1, 'Oth': 0})
 
 
 # %% SaleCondition: Condition of sale
@@ -1121,8 +1122,8 @@ complete_df['Total_porch_sf'] = (complete_df['OpenPorchSF'] + complete_df['3SsnP
 
 
 # %% Dropping bad features
-out = [
-        'MSSubClass_150',
+out = ['MSSubClass_150',
+       "BsmtQual_Po", # TODO: se non usiamo l'ordinamento va messa!
         'MSZoning_C (all)']
 columns_to_drop.extend(out)
 
@@ -1147,7 +1148,8 @@ print("There are", len(nullcols), "columns with missing values")
 
 
 # %% Infos
-# print(complete_df.info(verbose=True))
+print(complete_df.info(verbose=True))
+# print(complete_df.info(verbose=False))
 
 
 # %% ~~~~~ Split again into train and test ~~~~~
@@ -1156,11 +1158,8 @@ x_test = complete_df[train_len:]
 assert train_len == x_train.shape[0]
 assert test_len == x_test.shape[0]
 
-# %% Dropping outliers
-out = [30, 88, 462, 631, 1322]
-x_train = x_train.drop(x_train.index[out])
-y_train = y_train.drop(y_train.index[out])
 
+# %% ~~~~~ Check shapes ~~~~~
 print(x_train.shape)
 print(y_train.shape)
 print(x_test.shape)
