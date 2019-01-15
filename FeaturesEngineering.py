@@ -487,6 +487,9 @@ for i, name in enumerate(complete_df['Exterior2nd']):
     assert 'Exterior_{}'.format(name) in complete_df, 'Exterior_{}'.format(name)
     complete_df.loc[complete_df.index[i], 'Exterior_{}'.format(name)] = 1
 
+complete_df = ohe(complete_df, 'Exterior1st')
+complete_df = ohe(complete_df, 'Exterior2nd')
+
 # columns_to_drop.extend(['Exterior1st', 'Exterior2nd'])
 # print(complete_df[[x for x in complete_df if x.startswith('Exterior')]])
 
@@ -553,6 +556,17 @@ complete_df['ExterCond'] = complete_df['ExterCond'].map(qualities_dict).astype(i
 complete_df = ohe(complete_df, 'Foundation')
 
 
+# %% ~~~~~ Remove inconsistencies from Bsmt columns ~~~~~
+complete_df.loc[332, 'BsmtFinType2'] = 'ALQ'
+complete_df.loc[947, 'BsmtExposure'] = 'No'
+complete_df.loc[1485, 'BsmtExposure'] = 'No'
+complete_df.loc[2038, 'BsmtCond'] = 'TA'
+complete_df.loc[2183, 'BsmtCond'] = 'TA'
+complete_df.loc[2215, 'BsmtQual'] = 'Po'
+complete_df.loc[2216, 'BsmtQual'] = 'Fa'
+complete_df.loc[2346, 'BsmtExposure'] = 'No'
+complete_df.loc[2522, 'BsmtCond'] = 'Gd'
+
 # %% BsmtQual: Evaluates the height of the basement
 #
 #        Ex   Excellent (100+ inches)
@@ -564,7 +578,6 @@ complete_df = ohe(complete_df, 'Foundation')
 #
 complete_df['BsmtQual'] = complete_df['BsmtQual'].fillna(NONE_VALUE)
 complete_df['BsmtQual'] = complete_df['BsmtQual'].map(qualities_dict).astype(int)
-
 
 # %% BsmtCond: Evaluates the general condition of the basement
 #
@@ -641,17 +654,6 @@ complete_df['BsmtUnfSF'] = complete_df['BsmtUnfSF'].fillna(0).astype(int)
 complete_df['TotalBsmtSF'] = complete_df['TotalBsmtSF'].fillna(0).astype(int)
 complete_df['BsmtIsPresent'] = complete_df['TotalBsmtSF'].apply(lambda x: 1 if x > 0 else 0)
 
-
-# %% ~~~~~ Remove inconsistencies from Bsmt columns ~~~~~
-complete_df.loc[332, 'BsmtFinType2'] = 'ALQ'
-complete_df.loc[947, 'BsmtExposure'] = 'No'
-complete_df.loc[1485, 'BsmtExposure'] = 'No'
-complete_df.loc[2038, 'BsmtCond'] = 'TA'
-complete_df.loc[2183, 'BsmtCond'] = 'TA'
-complete_df.loc[2215, 'BsmtQual'] = 'Po'
-complete_df.loc[2216, 'BsmtQual'] = 'Fa'
-complete_df.loc[2346, 'BsmtExposure'] = 'No'
-complete_df.loc[2522, 'BsmtCond'] = 'Gd'
 
 # %% Heating: Type of heating
 #
@@ -1118,10 +1120,17 @@ complete_df['Total_porch_sf'] = (complete_df['OpenPorchSF'] + complete_df['3SsnP
                              complete_df['WoodDeckSF'])
 
 
+# %% Dropping bad features
+out = [
+        'MSSubClass_150',
+        'MSZoning_C (all)']
+columns_to_drop.extend(out)
+
 # ~~~~~ REMOVE FEATURES ~~~~
 for x in columns_to_drop:
     assert x in complete_df
 complete_df.drop(columns=columns_to_drop, inplace=True)
+
 
 # TODO We should remove discordant data (there can't be a single basement-feature with a 'no basement' meaning if at least another one is present
 # TODO We should remove discordant data (there can't be a single garage-feature with a 'no garage' meaning if at least another one is present
@@ -1138,7 +1147,8 @@ print("There are", len(nullcols), "columns with missing values")
 
 
 # %% Infos
-print(complete_df.info(verbose=True))
+# print(complete_df.info(verbose=True))
+
 
 # %% ~~~~~ Split again into train and test ~~~~~
 x_train = complete_df[:train_len]
@@ -1146,6 +1156,15 @@ x_test = complete_df[train_len:]
 assert train_len == x_train.shape[0]
 assert test_len == x_test.shape[0]
 
+# %% Dropping outliers
+out = [30, 88, 462, 631, 1322]
+x_train = x_train.drop(x_train.index[out])
+y_train = y_train.drop(y_train.index[out])
+
+print(x_train.shape)
+print(y_train.shape)
+print(x_test.shape)
+
 
 def get_engineered_train_test():
-    return ((train_ids, x_train, y_train), (test_ids, x_test))
+    return (train_ids, x_train, y_train), (test_ids, x_test)

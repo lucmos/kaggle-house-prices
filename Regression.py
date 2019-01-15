@@ -112,6 +112,6 @@ predictions = stack_gen_preds
 result_df = pd.DataFrame()
 result_df['Id'] = test_ids
 result_df['SalePrice'] = np.expm1(predictions)
-result_df.to_csv(Path(predictions_dir, 'predictions.csv'), index=False)
+result_df.to_csv(Path(predictions_dir, 'predictions_v3.csv'), index=False)
 #
 print("DONE")

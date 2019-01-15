@@ -54,7 +54,7 @@ feature = 'GarageFinish'
 # feature = 'GarageQual'
 # feature = 'GarageCond'
 feature = 'GarageYrBlt'
-feature = 'MasVnrArea'
+feature = 'BsmtFinType1'
 
 
 nan_mask = complete_df.isnull().any()
@@ -71,5 +71,5 @@ print('Values missing in the training set: {}'.format(set(train_df[feature]).dif
 #     if len(types) == 2:
 #         print(types)
 
-for x in Counter(complete_df[feature]):
-    print(x)
+# for x in Counter(complete_df[feature]):
+#     print(x)
