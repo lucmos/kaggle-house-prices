@@ -18,7 +18,10 @@ from constants import *
 NUMBER_OF_RANDOM_SPLITS = 10
 TEST_SIZE = 0.35
 
-def get_error_random_dev():
+def get_error_random_dev(title=""):
+    if title:
+        print(title)
+
     # %% Split into train and dev
     x_train_red, x_dev, y_train_red, y_dev = train_test_split(
         x_train, y_train, test_size=TEST_SIZE)
@@ -56,18 +59,16 @@ def get_error_random_dev():
     return err
 
 
-dev_errors = [get_error_random_dev() for _ in range(NUMBER_OF_RANDOM_SPLITS)]
-print("\n\nDEV ERROR ~ Stats over {} random splits with {} test\n"
-      "mean: {}\n"
-      "variance: {}\n"
-      "stdev: {}\n\n".format(NUMBER_OF_RANDOM_SPLITS,
+dev_errors = [get_error_random_dev("{}/{}".format(i+1, NUMBER_OF_RANDOM_SPLITS)) for i in range(NUMBER_OF_RANDOM_SPLITS)]
+print("\n\n> DEV ERROR ~ Stats over {} random splits with {} test\n"
+      "> mean: {}\n"
+      "> variance: {}\n"
+      "> stdev: {}\n\n".format(NUMBER_OF_RANDOM_SPLITS,
                              TEST_SIZE,
                              np.mean(dev_errors),
                              np.var(dev_errors),
                              np.std(dev_errors)))
 print("Done validating")
-
-assert False
 
 
 # -------------------------------------- TEST --------------------------------------

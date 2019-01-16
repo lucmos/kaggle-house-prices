@@ -57,9 +57,6 @@ complete_df = pd.concat([train_df, test_df]).reset_index(drop=True)
 assert complete_df.shape[0] == train_len + test_len
 
 
-
-
-
 # %% MSZoning: Identifies the general zoning classification of the sale.
 #
 #        A    Agriculture
@@ -107,7 +104,7 @@ complete_df['LotFrontage'] = complete_df.groupby('Neighborhood')['LotFrontage'].
 
 # %% LotArea: Lot size in square feet
 #
-# -> TODO: rescaling?
+# -> TODO: rescaling? luca: ?
 
 
 # %% Street: Type of road access to property
@@ -115,9 +112,10 @@ complete_df['LotFrontage'] = complete_df.groupby('Neighborhood')['LotFrontage'].
 #        Grvl Gravel
 #        Pave Paved
 #
-complete_df['IsStreetPaved'] = (complete_df['Street'] == 'Pave') * 1
-complete_df = ohe(complete_df, 'Street')
-# columns_to_drop.append('Street')
+# complete_df['IsStreetPaved'] = (complete_df['Street'] == 'Pave') * 1
+# complete_df = ohe(complete_df, 'Street')
+# -> Counter({'Pave': 2904, 'Grvl': 12}) TODO drop?
+columns_to_drop.append('Street')
 
 
 # %% Alley: Type of alley access to property
@@ -579,8 +577,10 @@ complete_df.loc[2522, 'BsmtCond'] = 'Gd'
 #        Po   Poor (<70 inches
 #        NA   No Basement
 #
+qualities_dict_custom = {NONE_VALUE: 0, 'Po': 3, 'Fa': 2, 'TA': 3, 'Gd': 4, 'Ex': 5}
 complete_df['BsmtQual'] = complete_df['BsmtQual'].fillna(NONE_VALUE)
-complete_df = ints_encoding(complete_df, 'BsmtQual', qualities_dict)
+complete_df = ints_encoding(complete_df, 'BsmtQual', qualities_dict_custom)
+
 
 # %% BsmtCond: Evaluates the general condition of the basement
 #
@@ -1123,13 +1123,13 @@ complete_df['Total_porch_sf'] = (complete_df['OpenPorchSF'] + complete_df['3SsnP
 
 # %% Dropping bad features
 out = ['MSSubClass_150',
-       "BsmtQual_Po", # TODO: se non usiamo l'ordinamento va messa!
+       # "BsmtQual_Po", # TODO: se non usiamo l'ordinamento va messa!
         'MSZoning_C (all)']
 columns_to_drop.extend(out)
 
 # ~~~~~ REMOVE FEATURES ~~~~
 for x in columns_to_drop:
-    assert x in complete_df
+    assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
 complete_df.drop(columns=columns_to_drop, inplace=True)
 
 
