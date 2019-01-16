@@ -70,4 +70,5 @@ def normalize_preidctions(predictions):
     q2 = predictions_df['SalePrice'].quantile(0.99)
     predictions_df['SalePrice'] = predictions_df['SalePrice'].apply(lambda x: x if x > q1 else x * 0.77)
     predictions_df['SalePrice'] = predictions_df['SalePrice'].apply(lambda x: x if x < q2 else x * 1.1)
+
     return predictions_df
