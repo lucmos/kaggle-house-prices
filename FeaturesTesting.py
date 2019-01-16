@@ -62,6 +62,7 @@ nan_columns = nan_mask[nan_mask]
 print('Feature: {}'.format(feature))
 print('Contains NaN values: {}'.format(feature in nan_columns))
 print("Number of values:", len(Counter(complete_df[feature])))
+print('Number of NaN in feature: {}'.format(complete_df[feature].isna().sum()))
 print(Counter(complete_df[feature]))
 print('Values missing in the training set: {}'.format(set(train_df[feature]).difference(set(test_df[feature]))))
 

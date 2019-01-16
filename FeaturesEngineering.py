@@ -4,8 +4,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+import fancyimpute as fi
+from fancyimpute import BiScaler, SoftImpute, IterativeImputer, KNN
+from sklearn.preprocessing import RobustScaler
+
 from FeaturesFunctions import *
 from constants import *
+
 
 # %% ~~~~~ GLOBAL SETTINGS ~~~~~
 # Pandas initialization
@@ -16,7 +21,13 @@ pd.set_option('display.float_format', lambda x: '{:.3f}'.format(x))
 
 # %% ~~~~~ CONSTANTS ~~~~~
 NONE_VALUE = 'None'
+
 columns_to_drop = []
+columns_to_drop_to_avoid_overfit = []  # TODO droppa DOPO ohe
+
+columns_to_ohe = []
+numeric_columns = []
+boolean_columns = []
 
 
 # %% ~~~~~ COMMON MAPPINGS ~~~~~
@@ -71,7 +82,8 @@ assert complete_df.shape[0] == train_len + test_len
 #
 # -> Categorical feature, maybe we should split this feature into two (Residential/Other) because of the order.
 complete_df['MSZoning'] = complete_df.groupby('MSSubClass')['MSZoning'].transform(lambda x: x.fillna(x.mode()[0]))
-complete_df = ohe(complete_df, 'MSZoning')
+columns_to_ohe.append('MSZoning')
+# ok!
 
 
 # %% MSSubClass: Identifies the type of dwelling involved in the sale.
@@ -94,19 +106,22 @@ complete_df = ohe(complete_df, 'MSZoning')
 #        190  2 FAMILY CONVERSION - ALL STYLES AND AGES
 #
 # -> Categorical feature, maybe with some order.
-complete_df['MSSubClass'] = complete_df['MSSubClass'].apply(str)
-complete_df = ohe(complete_df, 'MSSubClass')
+columns_to_ohe.append('MSSubClass')
+# ok!
 
 
 # %% LotFrontage: Linear feet of street connected to property
 #
 # -> Group by neighborhood and fill in missing value by the median LotFrontage of all the neighborhood
 complete_df['LotFrontage'] = complete_df.groupby('Neighborhood')['LotFrontage'].transform(lambda x: x.fillna(x.median()))
+numeric_columns.append('LotFrontage')
+# TODO: fillna specific to the problem. May be worth to let it and not autoimpute.
 
 
 # %% LotArea: Lot size in square feet
 #
-# -> TODO: rescaling? luca: ?
+numeric_columns.append('LotArea')
+# ok!
 
 
 # %% Street: Type of road access to property
@@ -116,8 +131,9 @@ complete_df['LotFrontage'] = complete_df.groupby('Neighborhood')['LotFrontage'].
 #
 # complete_df['IsStreetPaved'] = (complete_df['Street'] == 'Pave') * 1
 # complete_df = ohe(complete_df, 'Street')
-# -> Counter({'Pave': 2904, 'Grvl': 12}) TODO drop?
+# -> Counter({'Pave': 2904, 'Grvl': 12})
 columns_to_drop.append('Street')
+# ok!
 
 
 # %% Alley: Type of alley access to property
@@ -126,8 +142,8 @@ columns_to_drop.append('Street')
 #        Pave Paved
 #        NA   No alley access
 #
-complete_df['Alley'] = complete_df['Alley'].fillna(NONE_VALUE)
-complete_df = ohe(complete_df, 'Alley')
+columns_to_ohe.append('Alley')
+# ok!
 
 
 # %% LotShape: General shape of property
@@ -139,8 +155,10 @@ complete_df = ohe(complete_df, 'Alley')
 #
 # -> Counter({'Reg': 1859, 'IR1': 966, 'IR2': 76, 'IR3': 15})
 # -> So we can just transform this feature into a boolean one: IsLotShapeRegular
-complete_df['IsRegularLotShape'] = (complete_df['LotShape'] == 'Reg') * 1
-complete_df = ohe(complete_df, 'LotShape')
+complete_df['LotShapeEqualReg'] = (complete_df['LotShape'] == 'Reg') * 1
+columns_to_ohe.append('LotShape')
+boolean_columns.append('LotShapeEqualReg')
+# ok!
 
 
 # %% LandContour: Flatness of the property
@@ -152,8 +170,10 @@ complete_df = ohe(complete_df, 'LotShape')
 #
 # -> Counter({'Lvl': 2622, 'HLS': 120, 'Bnk': 115, 'Low': 59})
 # -> So we can just transform this feature into a boolean one: IsContourLandLevel
-complete_df['IsContourLandLevel'] = (complete_df['LandContour'] == 'Lvl') * 1
-complete_df = ohe(complete_df, 'LandContour')
+complete_df['LandContourEqualLandLevel'] = (complete_df['LandContour'] == 'Lvl') * 1
+columns_to_ohe.append('LandContour')
+boolean_columns.append('LandContourEqualLandLevel')
+# ok!
 
 
 # %% Utilities: Type of utilities available
@@ -166,6 +186,7 @@ complete_df = ohe(complete_df, 'LandContour')
 # -> Counter({'AllPub': 2913, nan: 2, 'NoSeWa': 1})
 # -> So it's an irrelevant feature, should be dropped all together
 columns_to_drop.append('Utilities')
+# ok!
 
 
 # %% LotConfig: Lot configuration
@@ -176,7 +197,8 @@ columns_to_drop.append('Utilities')
 #        FR2  Frontage on 2 sides of property
 #        FR3  Frontage on 3 sides of property
 #
-complete_df = ohe(complete_df, 'LotConfig')
+columns_to_ohe.append('LotConfig')
+# ok!
 
 
 # %% LandSlope: Slope of property
@@ -187,10 +209,10 @@ complete_df = ohe(complete_df, 'LotConfig')
 #
 # -> Counter({'Gtl': 2776, 'Mod': 124, 'Sev': 16})
 # -> So we can just transform this feature into a boolean one: IsSlopeGentle
-complete_df['IsSlopeGentle'] = (complete_df['LandSlope'] == 'Gtl') * 1
-complete_df = ohe(complete_df, 'LandSlope')
-
-# columns_to_drop.append('LandSlope')
+complete_df['LandSlopeEqualGtl'] = (complete_df['LandSlope'] == 'Gtl') * 1
+boolean_columns.append('LandSlopeEqualGtl')
+columns_to_ohe.append('LandSlope')
+# ok!
 
 
 # %% Neighborhood: Physical locations within Ames city limits
@@ -225,9 +247,10 @@ complete_df = ohe(complete_df, 'LandSlope')
 # -> Let's create a new boolean feature representing the belonging to one of these good neighborhoods.
 complete_df['IsGoodNeighborhood'] = np.array([x in ('NridgHt', 'Crawfor', 'StoneBr', 'Somerst', 'NoRidge')
                                               for x in complete_df['Neighborhood']]) * 1
-complete_df = ohe(complete_df, 'Neighborhood')
-
-# columns_to_drop.append('Neighborhood')
+boolean_columns.append('IsGoodNeighborhood')
+# columns_to_ohe.append('Neighborhood')   # TODO may be worth to drop it!
+columns_to_drop.append('Neighborhood')
+# ok!
 
 
 # %% Condition1 && Condition2
@@ -276,15 +299,11 @@ def conditions_merge(row):
     return condition
 
 
-complete_df['Condition'] = complete_df.apply(conditions_merge, axis=1).replace(
-    to_replace='Norm', value=NONE_VALUE, inplace=True)
-
-print(Counter(complete_df['Condition']))
-complete_df = ohe(complete_df, 'Condition')
-complete_df = ohe(complete_df, 'Condition1')
-complete_df = ohe(complete_df, 'Condition2')
-
-# columns_to_drop.extend(['Condition1', 'Condition2'])
+complete_df['Condition'] = complete_df.apply(conditions_merge, axis=1)
+columns_to_ohe.append('Condition')
+columns_to_ohe.append('Condition1')
+columns_to_ohe.append('Condition2')
+# ok!
 
 
 # %% BldgType: Type of dwelling
@@ -295,7 +314,8 @@ complete_df = ohe(complete_df, 'Condition2')
 #        TwnhsE   Townhouse End Unit
 #        TwnhsI   Townhouse Inside Unit
 #
-complete_df = ohe(complete_df, 'BldgType')
+columns_to_ohe.append('BldgType')
+# ok!
 
 
 # %% HouseStyle: Style of dwelling
@@ -314,21 +334,18 @@ complete_df = ohe(complete_df, 'BldgType')
 complete_df['HouseStyle_1st'] = 1*(complete_df['HouseStyle'] == '1Story')
 complete_df['HouseStyle_2st'] = 1*(complete_df['HouseStyle'] == '2Story')
 complete_df['HouseStyle_15st'] = 1*(complete_df['HouseStyle'] == '1.5Fin')
+boolean_columns.append('HouseStyle_1st')
+boolean_columns.append('HouseStyle_2st')
+boolean_columns.append('HouseStyle_15st')
 
 complete_df['HouseStyle_int'] = complete_df['HouseStyle']
 complete_df = ints_encoding(complete_df, 'HouseStyle_int',
-                                              {'1.5Unf': 0,
-                                               'SFoyer': 1,
-                                               '1.5Fin': 2,
-                                               '2.5Unf': 3,
-                                               'SLvl': 4,
-                                               '1Story': 5,
-                                               '2Story': 6,
-                                               '2.5Fin': 7}
-                                              )
+            {'1.5Unf': 0, 'SFoyer': 1, '1.5Fin': 2, '2.5Unf': 3, 'SLvl': 4, '1Story': 5, '2Story': 6, '2.5Fin': 7})
+numeric_columns.append('HouseStyle_int')
+columns_to_ohe.append('HouseStyle')
 
-complete_df = ohe(complete_df, 'HouseStyle')
-columns_to_drop.append('HouseStyle_2.5Fin')
+columns_to_drop_to_avoid_overfit.append('HouseStyle_2.5Fin')
+# ok!
 
 
 # %% OverallQual: Rates the overall material and finish of the house
@@ -357,7 +374,9 @@ def overall_qual_simplify(row):
 
 
 complete_df['OverallQualSimplified'] = complete_df.apply(overall_qual_simplify, axis=1)
-# columns_to_drop.append('OverallQual')
+numeric_columns.append('OverallQualSimplified')
+numeric_columns.append('OverallQual')
+# ok!
 
 
 # %% OverallCond: Rates the overall condition of the house
@@ -386,7 +405,9 @@ def overall_cond_simplify(row):
 
 
 complete_df['OverallCondSimplified'] = complete_df.apply(overall_cond_simplify, axis=1)
-# columns_to_drop.append('OverallCond')
+numeric_columns.append('OverallCondSimplified')
+numeric_columns.append('OverallCond')
+# ok!
 
 
 # %% YearBuilt && YearRemodAdd && YrSold
@@ -401,19 +422,25 @@ complete_df['OverallCondSimplified'] = complete_df.apply(overall_cond_simplify, 
 # -> First of all, we can bin the years of construction (going from 1872 to 2010, so spanning 128 years)
 # -> into 7 ranges (to obtain ~20 years for each bin):
 complete_df['YearBuiltBinned'] = pd.cut(complete_df['YearBuilt'], 7, labels=False)
+numeric_columns.append('YearBuiltBinned')
 
 # -> Now, we don't care about the exact remodel date, we just want to know if it has been remodeled:
 complete_df['IsRemodeled'] = (complete_df['YearRemodAdd'] != complete_df['YearBuilt']) * 1
+boolean_columns.append('IsRemodeled')
 
 # -> Is the remodel a very recent one (same year of the sale)?
 complete_df['IsRemodelRecent'] = (complete_df['YearRemodAdd'] == complete_df['YrSold']) * 1
+boolean_columns.append('IsRemodelRecent')
+
 complete_df['YearsSinceRemodel'] = complete_df['YrSold'].astype(int) - complete_df['YearRemodAdd'].astype(int)
+numeric_columns.append('YearsSinceRemodel')
 
 # -> Is this house new (year of sale same as the year of construction)?
 complete_df['IsNewHouse'] = (complete_df['YearBuilt'] == complete_df['YrSold']) * 1
+boolean_columns.append('IsNewHouse')
 
-complete_df = ohe(complete_df, 'YrSold')
-# columns_to_drop.extend(['YearRemodAdd', 'YrSold', 'YearBuilt'])
+numeric_columns.extend(['YearRemodAdd', 'YrSold', 'YearBuilt'])  # TODO someone threats them as categorical
+# ok!
 
 
 # %% RoofStyle: Type of roof
@@ -425,7 +452,8 @@ complete_df = ohe(complete_df, 'YrSold')
 #        Mansard  Mansard
 #        Shed Shed
 #
-complete_df = ohe(complete_df, 'RoofStyle')
+columns_to_ohe.append('RoofStyle') # TODO Suggested to drop roofs
+# ok!
 
 
 # %% RoofMatl: Roof material
@@ -440,8 +468,12 @@ complete_df = ohe(complete_df, 'RoofStyle')
 #        WdShngl  Wood Shingles
 #
 # -> Some values not present in test, remove (after the OneHotEncoding) the column_value {'Roll', 'Metal', 'Membran'}
-complete_df = ohe(complete_df, 'RoofMatl')
-columns_to_drop.extend(["RoofMatl_{}".format(x) for x in ["Roll", "Metal", "Membran"]])
+columns_to_drop_to_avoid_overfit.extend(["RoofMatl_{}".format(x) for x in ["Roll", "Metal", "Membran"]])
+
+complete_df['RoofMatlEqualGtl'] = (complete_df['RoofMatl'] == 'CompShg') * 1
+boolean_columns.append('RoofMatlEqualGtl')
+columns_to_ohe.append('RoofMatl')
+# ok!
 
 
 # %% Exterior1st && Exterior2nd
@@ -498,23 +530,22 @@ complete_df['Exterior2nd'] = complete_df['Exterior2nd'].replace(to_replace='Wd S
 complete_df['Exterior1st'] = complete_df['Exterior1st'].replace(to_replace='Brk Cmn', value='BrkComm')
 complete_df['Exterior2nd'] = complete_df['Exterior2nd'].replace(to_replace='Brk Cmn', value='BrkComm')
 
-complete_df['Exterior1st'] = complete_df['Exterior1st'].fillna("VinylSd")
-complete_df['Exterior2nd'] = complete_df['Exterior2nd'].fillna("VinylSd")
+columns_to_ohe.append('Exterior1st')
+columns_to_ohe.append('Exterior2nd')
 
-complete_df['Exterior'] = complete_df['Exterior1st']
-complete_df = ohe(complete_df, 'Exterior')
+# complete_df['Exterior'] = complete_df['Exterior1st'] TODO Difficult to implement if all ohe at the end
+# complete_df = ohe(complete_df, 'Exterior')
+#
+# complete_df['Exterior_Other'] = np.zeros((complete_df.shape[0], 1), dtype=np.int)
+#
+# for i, name in enumerate(complete_df['Exterior2nd']):
+#     assert 'Exterior_{}'.format(name) in complete_df, 'Exterior_{}'.format(name)
+#     complete_df.loc[complete_df.index[i], 'Exterior_{}'.format(name)] = 1
 
-complete_df['Exterior_Other'] = np.zeros((complete_df.shape[0], 1), dtype=np.int)
-
-for i, name in enumerate(complete_df['Exterior2nd']):
-    assert 'Exterior_{}'.format(name) in complete_df, 'Exterior_{}'.format(name)
-    complete_df.loc[complete_df.index[i], 'Exterior_{}'.format(name)] = 1
-
-complete_df = ohe(complete_df, 'Exterior1st')
-complete_df = ohe(complete_df, 'Exterior2nd')
 
 # columns_to_drop.extend(['Exterior1st', 'Exterior2nd'])
 # print(complete_df[[x for x in complete_df if x.startswith('Exterior')]])
+# ok!
 
 
 # %% MasVnrType && MasVnrArea
@@ -534,19 +565,20 @@ complete_df = ohe(complete_df, 'Exterior2nd')
 # -> So, for the MasVnrType feature, we fill NONE_VALUE when we don't get more info from the MasVnrArea,
 # -> otherwise 'BrkFace'.
 # -> Let's not forget that MasVnrType is a categorical feature.
-complete_df["MasVnrArea"] = complete_df["MasVnrArea"].fillna(0).astype(int)
-temp_df = complete_df[['MasVnrType', 'MasVnrArea']].copy()
-indexes_to_fill = (complete_df['MasVnrArea'] != 0) & ((complete_df['MasVnrType'] == 'None')
-                                                      | (complete_df['MasVnrType'].isnull()))
-
-complete_df.loc[indexes_to_fill, 'MasVnrType'] = 'BrkFace'
-complete_df['MasVnrType'] = complete_df['MasVnrType'].fillna(NONE_VALUE)
+# complete_df["MasVnrArea"] = complete_df["MasVnrArea"].fillna(0).astype(int) TODO trying to autoimpute
+# temp_df = complete_df[['MasVnrType', 'MasVnrArea']].copy()
+# indexes_to_fill = (complete_df['MasVnrArea'] != 0) & ((complete_df['MasVnrType'] == 'None')
+#                                                       | (complete_df['MasVnrType'].isnull()))
+#
+# complete_df.loc[indexes_to_fill, 'MasVnrType'] = 'BrkFace'
+# complete_df['MasVnrType'] = complete_df['MasVnrType'].fillna(NONE_VALUE)
+numeric_columns.append('MasVnrArea')
 
 complete_df['MasVnrType_int'] = complete_df['MasVnrType']
-
-complete_df = ints_encoding(complete_df, 'MasVnrType_int',
-                            {NONE_VALUE: 0, 'Stone': 1, 'BrkFace': 2, 'BrkCmn': 3})
-complete_df = ohe(complete_df, 'MasVnrType')
+complete_df = ints_encoding(complete_df, 'MasVnrType_int', {NONE_VALUE: 0, 'Stone': 1, 'BrkFace': 2, 'BrkCmn': 3})
+columns_to_ohe.append('MasVnrType')
+numeric_columns.append('MasVnrType_int')
+# ok!
 
 
 # %% ExterQual: Evaluates the quality of the material on the exterior
@@ -560,6 +592,8 @@ complete_df = ohe(complete_df, 'MasVnrType')
 # -> This is a categorical feature, but with an order which should be preserved!
 # complete_df['ExterQual'] = complete_df['ExterQual'].map(qualities_dict).astype(int)
 complete_df = ints_encoding(complete_df, 'ExterQual', qualities_dict)
+numeric_columns.append('ExterQual')
+# ok!
 
 # %% ExterCond: Evaluates the present condition of the material on the exterior
 #
@@ -571,6 +605,8 @@ complete_df = ints_encoding(complete_df, 'ExterQual', qualities_dict)
 #
 # -> This is a categorical feature, but with an order which should be preserved!
 complete_df = ints_encoding(complete_df, 'ExterCond', qualities_dict)
+numeric_columns.append('ExterCond')
+# ok!
 
 
 # %% Foundation: Type of foundation
@@ -583,18 +619,15 @@ complete_df = ints_encoding(complete_df, 'ExterCond', qualities_dict)
 #        Wood Wood
 #
 complete_df['Foundation_int'] = complete_df['Foundation']
-complete_df = ints_encoding(complete_df, 'Foundation_int', {
-                                                            'BrkTil': 5,
-                                                            'CBlock': 4,
-                                                            'PConc': 3,
-                                                            'Slab': 2,
-                                                            'Stone': 1,
-                                                            'Wood': 0,
-                                                            })
-complete_df = ohe(complete_df, 'Foundation')
+complete_df = ints_encoding(complete_df, 'Foundation_int',
+                            {'BrkTil': 5, 'CBlock': 4, 'PConc': 3, 'Slab': 2, 'Stone': 1, 'Wood': 0})
+numeric_columns.append('Foundation_int')
+columns_to_ohe.append('Foundation')
+# ok!
 
 
 # %% ~~~~~ Remove inconsistencies from Bsmt columns ~~~~~
+# TODO may be worth disabling this
 complete_df.loc[332, 'BsmtFinType2'] = 'ALQ'
 complete_df.loc[947, 'BsmtExposure'] = 'No'
 complete_df.loc[1485, 'BsmtExposure'] = 'No'
@@ -604,6 +637,7 @@ complete_df.loc[2215, 'BsmtQual'] = 'Po'
 complete_df.loc[2216, 'BsmtQual'] = 'Fa'
 complete_df.loc[2346, 'BsmtExposure'] = 'No'
 complete_df.loc[2522, 'BsmtCond'] = 'Gd'
+
 
 # %% BsmtQual: Evaluates the height of the basement
 #
@@ -615,8 +649,9 @@ complete_df.loc[2522, 'BsmtCond'] = 'Gd'
 #        NA   No Basement
 #
 qualities_dict_custom = {NONE_VALUE: 0, 'Po': 3, 'Fa': 2, 'TA': 3, 'Gd': 4, 'Ex': 5}
-complete_df['BsmtQual'] = complete_df['BsmtQual'].fillna(NONE_VALUE)
-complete_df = ints_encoding(complete_df, 'BsmtQual', qualities_dict_custom)
+complete_df = ints_encoding(complete_df, 'BsmtQual', qualities_dict_custom)  # TODO dict custom made!
+numeric_columns.append('BsmtQual')
+# ok!
 
 
 # %% BsmtCond: Evaluates the general condition of the basement
@@ -628,8 +663,9 @@ complete_df = ints_encoding(complete_df, 'BsmtQual', qualities_dict_custom)
 #        Po   Poor - Severe cracking, settling, or wetness
 #        NA   No Basement
 #
-complete_df['BsmtCond'] = complete_df['BsmtCond'].fillna(NONE_VALUE)
 complete_df = ints_encoding(complete_df, 'BsmtCond', qualities_dict)
+numeric_columns.append('BsmtCond')
+# ok!
 
 
 # %% BsmtExposure: Refers to walkout or garden level walls
@@ -641,8 +677,9 @@ complete_df = ints_encoding(complete_df, 'BsmtCond', qualities_dict)
 #        NA   No Basement
 #
 # -> TODO Gestisci differenza fra No e NA (?)
-complete_df['BsmtExposure'] = complete_df['BsmtExposure'].fillna(NONE_VALUE)
 complete_df = ints_encoding(complete_df, 'BsmtExposure', {NONE_VALUE: 0, 'No': 1, 'Mn': 2, 'Av': 3, 'Gd': 4})
+numeric_columns.append('BsmtExposure')
+# ok!
 
 
 # %% BsmtFinType1: Rating of basement finished area
@@ -655,16 +692,21 @@ complete_df = ints_encoding(complete_df, 'BsmtExposure', {NONE_VALUE: 0, 'No': 1
 #        Unf  Unfinshed
 #        NA   No Basement
 #
-complete_df['BsmtFinType1'] = complete_df['BsmtFinType1'].fillna(NONE_VALUE)
+columns_to_ohe.append('BsmtFinType1')
+
 complete_df['BsmtFinType1_int'] = complete_df['BsmtFinType1']
 complete_df = ints_encoding(complete_df, 'BsmtFinType1_int', fin_qualities_dict)
+numeric_columns.append('BsmtFinType1_int')
+
 complete_df['BsmtFinType1_Unf'] = 1*(complete_df['BsmtFinType1'] == 'Unf')
-complete_df = ohe(complete_df, 'BsmtFinType1')
+boolean_columns.append('BsmtFinType1_Unf')
+# ok!
 
 
 # %% BsmtFinSF1: Type 1 finished square feet
 #
-complete_df['BsmtFinSF1'] = complete_df['BsmtFinSF1'].fillna(0).astype(int)
+numeric_columns.append('BsmtFinSF1')
+# ok!
 
 
 # %% BsmtFinType2: Rating of basement finished area (if multiple types)
@@ -677,24 +719,30 @@ complete_df['BsmtFinSF1'] = complete_df['BsmtFinSF1'].fillna(0).astype(int)
 #        Unf  Unfinshed
 #        NA   No Basement
 #
-complete_df['BsmtFinType2'] = complete_df['BsmtFinType2'].fillna(NONE_VALUE)
 complete_df = ints_encoding(complete_df, 'BsmtFinType2', fin_qualities_dict)
+numeric_columns.append('BsmtFinType2')
+# ok!
 
 
 # %% BsmtFinSF2: Type 2 finished square feet
 #
-complete_df['BsmtFinSF2'] = complete_df['BsmtFinSF2'].fillna(0).astype(int)
+numeric_columns.append('BsmtFinSF2')
+# ok!
 
 
 # %% BsmtUnfSF: Unfinished square feet of basement area
 #
-complete_df['BsmtUnfSF'] = complete_df['BsmtUnfSF'].fillna(0).astype(int)
+numeric_columns.append('BsmtUnfSF')
+# ok!
 
 
 # %% TotalBsmtSF: Total square feet of basement area
 #
-complete_df['TotalBsmtSF'] = complete_df['TotalBsmtSF'].fillna(0).astype(int)
+numeric_columns.append('TotalBsmtSF')
+
 complete_df['BsmtIsPresent'] = complete_df['TotalBsmtSF'].apply(lambda x: 1 if x > 0 else 0)
+boolean_columns.append('BsmtIsPresent')
+# ok!
 
 
 # %% Heating: Type of heating
@@ -707,8 +755,9 @@ complete_df['BsmtIsPresent'] = complete_df['TotalBsmtSF'].apply(lambda x: 1 if x
 #        Wall Wall furnace
 #
 # -> Some values not present in test, remove (after the OneHotEncoding) the column_value {'Floor', 'OthW'}
-complete_df = ohe(complete_df, 'Heating')
-columns_to_drop.extend(["Heating_{}".format(x) for x in ["Floor", "OthW"]])
+columns_to_ohe.append('Heating')
+columns_to_drop_to_avoid_overfit.extend(["Heating_{}".format(x) for x in ["Floor", "OthW"]])
+# ok!
 
 
 # %% HeatingQC: Heating quality and condition
@@ -720,6 +769,8 @@ columns_to_drop.extend(["Heating_{}".format(x) for x in ["Floor", "OthW"]])
 #        Po   Poor
 #
 complete_df = ints_encoding(complete_df, 'HeatingQC', qualities_dict)
+numeric_columns.append('HeatingQC')
+# ok!
 
 
 # %% CentralAir: Central air conditioning
@@ -727,8 +778,9 @@ complete_df = ints_encoding(complete_df, 'HeatingQC', qualities_dict)
 #        N    No
 #        Y    Yes
 #
-# complete_df['HasCentralAir'] = (complete_df['CentralAir'] == 'Y') * 1 todo i booleano vanno one hot encoded?
-complete_df = ohe(complete_df, 'CentralAir')
+complete_df['CentralAir'] = (complete_df['CentralAir'] == 'Y') * 1
+boolean_columns.append('CentralAir')
+# ok!
 
 
 # %% Electrical: Electrical system
@@ -742,52 +794,71 @@ complete_df = ohe(complete_df, 'CentralAir')
 # -> Counter({'SBrkr': 2668, 'FuseA': 188, 'FuseF': 50, 'FuseP': 8, 'Mix': 1, nan: 1})
 # -> Therefore, we can set the only NaN value to 'SBrkr' which is by far the most common one.
 # -> Some values not present in test, remove (after the OneHotEncoding) the column_value {'Mix'}
-complete_df['Electrical'] = complete_df['Electrical'].fillna('SBrkr')
-complete_df = ohe(complete_df, 'Electrical')
-columns_to_drop.append('Electrical_Mix')
+columns_to_ohe.append('Electrical')
+columns_to_drop_to_avoid_overfit.append('Electrical_Mix')
+# ok!
 
 
 # %% 1stFlrSF: First Floor square feet
-#
+numeric_columns.append('1stFlrSF')
+# ok!
 
 
 # %% 2ndFlrSF: Second floor square feet
 #
+numeric_columns.append('2ndFlrSF')
+
 complete_df['2ndFloorIsPresent'] = (complete_df['2ndFlrSF'] > 0) * 1
+boolean_columns.append('2ndFloorIsPresent')
+# ok!
 
 
 # %% LowQualFinSF: Low quality finished square feet (all floors)
 #
+numeric_columns.append('LowQualFinSF')
+# ok!
 
 
 # %% GrLivArea: Above grade (ground) living area square feet
 #
+numeric_columns.append('GrLivArea')
+# ok!
 
 
 # %% BsmtFullBath: Basement full bathrooms
 #
-complete_df['BsmtFullBath'] = complete_df['BsmtFullBath'].fillna(0).astype(int)
+numeric_columns.append('BsmtFullBath')
+# ok!
 
 
 # %% BsmtHalfBath: Basement half bathrooms
 #
-complete_df['BsmtHalfBath'] = complete_df['BsmtHalfBath'].fillna(0).astype(int)
+numeric_columns.append('BsmtHalfBath')
+# ok!
 
 
 # %% FullBath: Full bathrooms above grade
 #
+numeric_columns.append('FullBath')
+# ok!
 
 
 # %% HalfBath: Half baths above grade
 #
+numeric_columns.append('HalfBath')
+# ok!
 
 
-# %% Bedroom: Bedrooms above grade (does NOT include basement bedrooms)
+# %% BedroomAbvGr: Bedrooms above grade (does NOT include basement bedrooms) # todo wrong name in data description...
 #
+numeric_columns.append('BedroomAbvGr')
+# ok!
 
 
-# %% Kitchen: Kitchens above grade
+# %% KitchenAbvGr: Kitchens above grade #todo Wrond name in data description....
 #
+numeric_columns.append('KitchenAbvGr')
+# ok!
 
 
 # %% KitchenQual: Kitchen quality
@@ -800,12 +871,15 @@ complete_df['BsmtHalfBath'] = complete_df['BsmtHalfBath'].fillna(0).astype(int)
 #
 # -> Counter({'TA': 1492, 'Gd': 1150, 'Ex': 203, 'Fa': 70, nan: 1})
 # -> Let's fill the single NaN value with the most common one (that also stands for 'average'!)
-complete_df['KitchenQual'] = complete_df['KitchenQual'].fillna('TA')
 complete_df = ints_encoding(complete_df, 'KitchenQual', qualities_dict)
+numeric_columns.append('KitchenQual')
+# ok!
 
 
 # %% TotRmsAbvGrd: Total rooms above grade (does not include bathrooms)
 #
+numeric_columns.append('TotRmsAbvGrd')
+# ok!
 
 
 # %% Functional: Home functionality (Assume typical unless deductions are warranted)
@@ -822,11 +896,12 @@ complete_df = ints_encoding(complete_df, 'KitchenQual', qualities_dict)
 # -> This is a categorical feature, but with order! (higher value means more functionalities)
 # -> Counter({'Typ': 2715, 'Min2': 70, 'Min1': 64, 'Mod': 35, 'Maj1': 19, 'Maj2': 9, 'Sev': 2, nan: 2})
 # -> Let's assume that the NaN values here are 'Typ' (that also stands for 'typical'!)
-complete_df['Functional'] = complete_df['Functional'].fillna('Typ')
 complete_df['Functional_int'] = complete_df['Functional']
 complete_df = ints_encoding(complete_df, 'Functional_int',  {NONE_VALUE: 0, 'Sal': 1, 'Sev': 2, 'Maj2': 3, 'Maj1': 4, 'Mod': 5, 'Min2': 6, 'Min1': 7, 'Typ': 8})
 
-complete_df = ohe(complete_df, 'Functional')
+columns_to_ohe.append('Functional')
+numeric_columns.append('Functional_int')
+# ok!
 
 
 # %% Fireplaces && FireplaceQu
@@ -845,14 +920,16 @@ complete_df = ohe(complete_df, 'Functional')
 #        NA   No Fireplace
 # -> Counter({nan: 1420, 'Gd': 741, 'TA': 592, 'Fa': 74, 'Po': 46, 'Ex': 43})
 # -> First, let's simplify the 'Fireplaces' feature into a boolean one
+numeric_columns.append('Fireplaces')
+
 complete_df['FireplaceIsPresent'] = (complete_df['Fireplaces'] > 0) * 1
+boolean_columns.append('FireplaceIsPresent')
 # -> Now, let's map the NaN values of 'FireplaceQu' to NONE_VALUE,
 #    which will be mapped to 0 meaning there's no fireplace.
 # -> We can do this since the rows with false 'HasFireplaces' are the same with NaN 'FireplaceQu'!
-complete_df['FireplaceQu'] = complete_df['FireplaceQu'].fillna(NONE_VALUE)
 complete_df = ints_encoding(complete_df, 'FireplaceQu', qualities_dict)
-
-# TODO Here 'FA' means that there's a fireplace in the basement, so THERE IS A BASEMENT. Check for collisions!
+boolean_columns.append('FireplaceQu')
+# ok!
 
 
 # %% GarageType: Garage location
@@ -865,18 +942,21 @@ complete_df = ints_encoding(complete_df, 'FireplaceQu', qualities_dict)
 #        Detchd   Detached from home
 #        NA   No Garage
 #
-complete_df["GarageType"] = complete_df["GarageType"].fillna(NONE_VALUE)
-complete_df = ohe(complete_df, 'GarageType')
+columns_to_ohe.append('GarageType')
+# ok!
 
 
 # %% GarageYrBlt: Year garage was built
 #
-complete_df.loc[2124, 'GarageYrBlt'] = complete_df['GarageYrBlt'].median()
-complete_df.loc[2574, 'GarageYrBlt'] = complete_df['GarageYrBlt'].median()
-complete_df.loc[2590, 'GarageYrBlt'] = 2007
-complete_df["GarageYrBlt"] = complete_df["GarageYrBlt"].fillna(0).astype(float)
+# complete_df.loc[2124, 'GarageYrBlt'] = complete_df['GarageYrBlt'].median()
+# complete_df.loc[2574, 'GarageYrBlt'] = complete_df['GarageYrBlt'].median()
+# complete_df.loc[2590, 'GarageYrBlt'] = 2007
+numeric_columns.append('GarageYrBlt')
+
 complete_df["GarageIsPresent"] = (complete_df["GarageYrBlt"] > 0) * 1
+boolean_columns.append('GarageIsPresent')
 # columns_to_drop.append("GarageYrBlt")
+# ok!
 
 
 # %% GarageFinish: Interior finish of the garage
@@ -886,24 +966,30 @@ complete_df["GarageIsPresent"] = (complete_df["GarageYrBlt"] > 0) * 1
 #        Unf  Unfinished
 #        NA   No Garage
 #
-complete_df.loc[2124, 'GarageFinish'] = complete_df['GarageFinish'].mode()[0]
-complete_df.loc[2574, 'GarageFinish'] = complete_df['GarageFinish'].mode()[0]
-complete_df["GarageFinish"] = complete_df["GarageFinish"].fillna(NONE_VALUE)
+# complete_df.loc[2124, 'GarageFinish'] = complete_df['GarageFinish'].mode()[0]
+# complete_df.loc[2574, 'GarageFinish'] = complete_df['GarageFinish'].mode()[0]
+# complete_df["GarageFinish"] = complete_df["GarageFinish"]
 # print('GarageFinish', Counter(complete_df["GarageFinish"]))
 complete_df = ints_encoding(complete_df, 'GarageFinish', {NONE_VALUE: 0, "Unf": 1, "RFn": 2, "Fin": 3})
+numeric_columns.append('GarageFinish')
+# ok!
 
 
 # %% GarageCars: Size of garage in car capacity
 #
-complete_df.loc[2574, 'GarageCars'] = complete_df['GarageCars'].median()
-complete_df["GarageCars"] = complete_df["GarageCars"].fillna(0).astype(int)
+# complete_df.loc[2574, 'GarageCars'] = complete_df['GarageCars'].median()
+# complete_df["GarageCars"] = complete_df["GarageCars"]
+numeric_columns.append('GarageCars')
+# ok!
 
 
 # %% GarageArea: Size of garage in square feet
 #
-complete_df.loc[2124, 'GarageArea'] = complete_df['GarageArea'].median()
-complete_df.loc[2574, 'GarageArea'] = complete_df['GarageArea'].median()
-complete_df["GarageArea"] = complete_df["GarageArea"].fillna(0).astype(int)
+# complete_df.loc[2124, 'GarageArea'] = complete_df['GarageArea'].median()
+# complete_df.loc[2574, 'GarageArea'] = complete_df['GarageArea'].median()
+# complete_df["GarageArea"] = complete_df["GarageArea"]
+numeric_columns.append('GarageArea')
+# ok!
 
 
 # %% GarageQual: Garage quality
@@ -915,10 +1001,12 @@ complete_df["GarageArea"] = complete_df["GarageArea"].fillna(0).astype(int)
 #        Po   Poor
 #        NA   No Garage
 #
-complete_df.loc[2124, 'GarageQual'] = complete_df['GarageQual'].mode()[0]
-complete_df.loc[2574, 'GarageQual'] = complete_df['GarageQual'].mode()[0]
-complete_df["GarageQual"] = complete_df["GarageQual"].fillna(NONE_VALUE)
+# complete_df.loc[2124, 'GarageQual'] = complete_df['GarageQual'].mode()[0]
+# complete_df.loc[2574, 'GarageQual'] = complete_df['GarageQual'].mode()[0]
+# complete_df["GarageQual"] = complete_df["GarageQual"]
 complete_df = ints_encoding(complete_df, 'GarageQual', qualities_dict)
+numeric_columns.append('GarageQual')
+# ok!
 
 
 # %% GarageCond: Garage condition
@@ -930,10 +1018,12 @@ complete_df = ints_encoding(complete_df, 'GarageQual', qualities_dict)
 #        Po   Poor
 #        NA   No Garage
 #
-complete_df.loc[2124, 'GarageCond'] = complete_df['GarageCond'].mode()[0]
-complete_df.loc[2574, 'GarageCond'] = complete_df['GarageCond'].mode()[0]
-complete_df["GarageCond"] = complete_df["GarageCond"].fillna(NONE_VALUE)
+# complete_df.loc[2124, 'GarageCond'] = complete_df['GarageCond'].mode()[0]
+# complete_df.loc[2574, 'GarageCond'] = complete_df['GarageCond'].mode()[0]
+# complete_df["GarageCond"] = complete_df["GarageCond"]
 complete_df = ints_encoding(complete_df, 'GarageCond', qualities_dict)
+numeric_columns.append('GarageCond')
+# ok!
 
 
 # %% PavedDrive: Paved driveway
@@ -945,33 +1035,57 @@ complete_df = ints_encoding(complete_df, 'GarageCond', qualities_dict)
 # -> Counter({'Y': 2638, 'N': 216, 'P': 62})
 # -> Let's create a new boolean feature with the meaning 'has a paved drive?'
 complete_df['HasPavedDrive'] = (complete_df['PavedDrive'] == 'Y') * 1
-complete_df = ohe(complete_df, 'PavedDrive')
+boolean_columns.append('HasPavedDrive')
+
+columns_to_ohe.append('PavedDrive')
 
 # columns_to_drop.append('PavedDrive')
+# ok!
+
 
 # %% WoodDeckSF: Wood deck area in square feet
 #
+numeric_columns.append('WoodDeckSF')
+
 complete_df['HasWoodDeck'] = (complete_df['WoodDeckSF'] == 0) * 1
+boolean_columns.append('HasWoodDeck')
+# ok!
 
 
 # %% OpenPorchSF: Open porch area in square feet
 #
+numeric_columns.append('OpenPorchSF')
+
 complete_df['HasOpenPorch'] = (complete_df['OpenPorchSF'] == 0) * 1
+boolean_columns.append('HasOpenPorch')
+# ok!
 
 
 # %% EnclosedPorch: Enclosed porch area in square feet
 #
+numeric_columns.append('EnclosedPorch')
+
 complete_df['HasEnclosedPorch'] = (complete_df['EnclosedPorch'] == 0) * 1
+boolean_columns.append('HasEnclosedPorch')
+# ok!
 
 
 # %% 3SsnPorch: Three season porch area in square feet
 #
+numeric_columns.append('3SsnPorch')
+
 complete_df['Has3SsnPorch'] = (complete_df['3SsnPorch'] == 0) * 1
+boolean_columns.append('Has3SsnPorch')
+# ok!
 
 
 # %% ScreenPorch: Screen porch area in square feet
 #
+numeric_columns.append('ScreenPorch')
+
 complete_df['HasScreenPorch'] = (complete_df['ScreenPorch'] == 0) * 1
+boolean_columns.append('HasScreenPorch')
+# ok!
 
 
 # %% PoolArea && PoolQC
@@ -989,14 +1103,18 @@ complete_df['HasScreenPorch'] = (complete_df['ScreenPorch'] == 0) * 1
 # PoolQC: Pool quality
 # Counter({nan: 2907, 'Ex': 4, 'Gd': 3, 'Fa': 2})
 # Let's just merge those two features into a simple 'has a pool?'
-complete_df.loc[2418, 'PoolQC'] = 'Fa'
-complete_df.loc[2501, 'PoolQC'] = 'Gd'
-complete_df.loc[2597, 'PoolQC'] = 'Fa'
-complete_df['PoolQC'] = complete_df['PoolQC'].fillna(NONE_VALUE)
-complete_df = ints_encoding(complete_df, 'PoolQC', {NONE_VALUE: 0, 'Fa': 1, 'TA': 2, 'Gd': 3, 'Ex': 4})
-complete_df['PollIsPresent'] = (complete_df['PoolArea'] > 0) * 1
+# complete_df.loc[2418, 'PoolQC'] = 'Fa'
+# complete_df.loc[2501, 'PoolQC'] = 'Gd'
+# complete_df.loc[2597, 'PoolQC'] = 'Fa'
+# complete_df['PoolQC'] = complete_df['PoolQC']
+numeric_columns.append('PoolArea')
 
-# columns_to_drop.extend(['PoolArea', 'PoolQC']) # TODO una casa con una megapiscina vale sicuro di più
+complete_df = ints_encoding(complete_df, 'PoolQC', {NONE_VALUE: 0, 'Fa': 1, 'TA': 2, 'Gd': 3, 'Ex': 4})
+numeric_columns.append('PoolQC')
+
+complete_df['PollIsPresent'] = (complete_df['PoolArea'] > 0) * 1
+boolean_columns.append('PollIsPresent')
+# ok!
 
 
 # %% Fence: Fence quality
@@ -1010,8 +1128,9 @@ complete_df['PollIsPresent'] = (complete_df['PoolArea'] > 0) * 1
 # -> This is a categorical feature, but with order! (higher value means better fence)
 # -> Counter({nan: 2345, 'MnPrv': 329, 'GdPrv': 118, 'GdWo': 112, 'MnWw': 12})
 # -> Let's map the NaN values to NONE_VALUE which will then be mapped to a 0 quality.
-complete_df['Fence']= complete_df['Fence'].fillna(NONE_VALUE)
 complete_df = ints_encoding(complete_df, 'Fence', {NONE_VALUE: 0, 'MnWw': 1, 'GdWo': 2, 'MnPrv': 3, 'GdPrv': 4})
+numeric_columns.append('Fence')
+# ok!
 
 
 # %% MiscFeature && MiscVal
@@ -1031,23 +1150,25 @@ complete_df = ints_encoding(complete_df, 'Fence', {NONE_VALUE: 0, 'MnWw': 1, 'Gd
 # -> MiscVal: $Value of miscellaneous feature
 # -> Given this distribution, we can assume that the only useful info in this feature is the presence of a shed.
 # -> Let's create a boolean feature representing that keeping in mind the value of MiscVal that could be 0 (no shed!).
+columns_to_ohe.append('MiscFeature')
+columns_to_ohe.append('MiscVal')
+
+
 def has_shed(row):
     # assert (row['MiscFeature'] == 'Shed' and row['MiscVal'] > 0)*1 in (0, 1)
     return (row['MiscFeature'] == 'Shed' and row['MiscVal'] > 0) * 1
 
 
 complete_df['HasShed'] = complete_df.apply(has_shed, axis=1)
+boolean_columns.append('HasShed')
 
-complete_df['MiscFeature'] = complete_df['MiscFeature'].fillna(NONE_VALUE)
-complete_df = ohe(complete_df, 'MiscFeature')
-
-# columns_to_drop.extend(['MiscFeature', 'MiscVal'])
 
 
 # %% MoSold: Month Sold (MM)
 #
-complete_df['MoSold'] = complete_df['MoSold'].astype(str)
-complete_df = ohe(complete_df, 'MoSold')
+numeric_columns.append('MoSold')
+# complete_df['MoSold'] = complete_df['MoSold'].astype(str)
+# complete_df = ohe(complete_df, 'MoSold')
 
 
 # %% SaleType: Type of sale
@@ -1066,8 +1187,8 @@ complete_df = ohe(complete_df, 'MoSold')
 # -> Counter({'WD': 2524, 'New': 237, 'COD': 87, 'ConLD': 26, 'CWD': 12, 'ConLI': 9, 'ConLw': 8, 'Oth': 7,
 # -> 'Con': 5, nan: 1})
 # -> Let's fill the single NaN value to the most common one (WD)
-complete_df['SaleType'] = complete_df['SaleType'].fillna('WD')
 complete_df = ints_encoding(complete_df, 'SaleType', {'WD': 9, 'CWD': 8, 'VWD': 7, 'New': 6, 'COD': 5, 'Con': 4, 'ConLw': 3, 'ConLI': 2, 'ConLD': 1, 'Oth': 0})
+numeric_columns.append('SaleType')
 
 
 # %% SaleCondition: Condition of sale
@@ -1078,7 +1199,46 @@ complete_df = ints_encoding(complete_df, 'SaleType', {'WD': 9, 'CWD': 8, 'VWD': 
 #        Alloca   Allocation - two linked properties with separate deeds, typically condo with a garage unit
 #        Family   Sale between family members
 #        Partial  Home was not completed when last assessed (associated with New Homes)
-complete_df = ohe(complete_df, 'SaleCondition')
+columns_to_ohe.append('SaleCondition')
+
+
+# %% REMOVE BAD FEATURES
+for x in columns_to_drop:
+    assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
+complete_df.drop(columns=columns_to_drop, inplace=True)
+
+
+# %% ASSERTIONS
+assert len(columns_to_ohe) + len(numeric_columns) + (len(boolean_columns)) == complete_df.shape[1], "Number of features mismatch"
+
+# %% PERFORM ONE HOT ENCODING
+for x in columns_to_ohe:
+    assert x in complete_df
+    complete_df[x] = complete_df[x].astype(str)
+
+complete_df = pd.get_dummies(complete_df, columns=columns_to_ohe)
+
+print(complete_df.info(verbose=True))
+
+# %% ~~~~~ FANCY IMPUTER ~~~~~
+# complete_df = RobustScaler().fit_transform(complete_df)
+# complete_df = fi.NuclearNormMinimization().fit_transform(complete_df)
+check_missing_values(complete_df)
+
+index = complete_df.index
+columns = complete_df.columns
+
+# complete_df = BiScaler().fit_transform(complete_df.as_matrix())
+# complete_df = SoftImpute().fit_transform(complete_df)
+complete_df = KNN().fit_transform(complete_df)
+# complete_df = IterativeImputer().fit_transform(complete_df)
+
+complete_df = pd.DataFrame(complete_df, index=index, columns = columns)
+
+print(complete_df.head())
+# assert False
+
+
 
 
 # ~~~~~ ADD NEW FEATURES ~~~~
@@ -1123,9 +1283,12 @@ loglist = ['LotFrontage','LotArea','MasVnrArea','BsmtFinSF1','BsmtFinSF2','BsmtU
                  'TotalBsmtSF','1stFlrSF','2ndFlrSF','LowQualFinSF','GrLivArea',
                  'BsmtFullBath','BsmtHalfBath','FullBath','HalfBath','BedroomAbvGr','KitchenAbvGr',
                  'TotRmsAbvGrd','Fireplaces','GarageCars','GarageArea','WoodDeckSF','OpenPorchSF',
-                 'EnclosedPorch','3SsnPorch','ScreenPorch','PoolArea','MiscVal','YearRemodAdd','TotalSF']
+                 'EnclosedPorch','3SsnPorch','ScreenPorch','PoolArea','YearRemodAdd','TotalSF',
+           # 'MiscVal',
+           ]
 
 complete_df = addlogs(complete_df, loglist)
+
 
 # %% Add Squared
 def addSquared(res, ls):
@@ -1143,67 +1306,70 @@ sqpredlist = ['YearRemodAdd', 'LotFrontage_log',
 complete_df = addSquared(complete_df, sqpredlist)
 
 
-# %% ~~~~~ Resolve skewness ~~~~ TODO camuffa codice
-from scipy.stats import skew
 
-numeric_features = ["MiscVal",
-                    "PoolArea",
-                    "LotArea",
-                    "LowQualFinSF",
-                    "3SsnPorch",
-                    "KitchenAbvGr",
-                    "BsmtFinSF2",
-                    "EnclosedPorch",
-                    "ScreenPorch",
-                    "BsmtHalfBath",
-                    "MasVnrArea",
-                    "OpenPorchSF",
-                    "WoodDeckSF",
-                    "1stFlrSF",
-                    "LotFrontage",
-                    "GrLivArea",
-                    "BsmtFinSF1",
-                    "BsmtUnfSF",
-                    "2ndFlrSF",
-                    "TotRmsAbvGrd",
-                    "Fireplaces",
-                    "HalfBath",
-                    "TotalBsmtSF",
-                    "BsmtFullBath",
-                    "OverallCond",
-                    "BedroomAbvGr",
-                    "GarageArea",
-                    # "MoSold", # TODO è stato messo a string
-                    "OverallQual",
-                    "FullBath",
-                    # "YrSold", # TODO è stato messo a string
-                    "GarageCars",
-                    "YearRemodAdd",
-                    "YearBuilt",
-                    "GarageYrBlt"]
 
-# for y in numeric_features:
-#     print(complete_df[y].dtype)
 
-skew_features = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
-skews = pd.DataFrame({'skew': skew_features})
-
-# print(skew_features)
-
-from scipy.special import boxcox1p
-from scipy.stats import boxcox_normmax
-
-high_skew = skew_features[skew_features > 0.5]
-high_skew = high_skew
-skew_index = high_skew.index
-
-for i in skew_index:
-    complete_df[i] = boxcox1p(complete_df[i], boxcox_normmax(complete_df[i] + 1))
-
-# Check it is adjusted
-# skew_features2 = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
-# skews2 = pd.DataFrame({'skew': skew_features2})
-# print(skew_features2)
+# # %% ~~~~~ Resolve skewness ~~~~ TODO camuffa codice
+# from scipy.stats import skew
+#
+# # numeric_features = ["MiscVal",
+# #                     "PoolArea",
+# #                     "LotArea",
+# #                     "LowQualFinSF",
+# #                     "3SsnPorch",
+# #                     "KitchenAbvGr",
+# #                     "BsmtFinSF2",
+# #                     "EnclosedPorch",
+# #                     "ScreenPorch",
+# #                     "BsmtHalfBath",
+# #                     "MasVnrArea",
+# #                     "OpenPorchSF",
+# #                     "WoodDeckSF",
+# #                     "1stFlrSF",
+# #                     "LotFrontage",
+# #                     "GrLivArea",
+# #                     "BsmtFinSF1",
+# #                     "BsmtUnfSF",
+# #                     "2ndFlrSF",
+# #                     "TotRmsAbvGrd",
+# #                     "Fireplaces",
+# #                     "HalfBath",
+# #                     "TotalBsmtSF",
+# #                     "BsmtFullBath",
+# #                     "OverallCond",
+# #                     "BedroomAbvGr",
+# #                     "GarageArea",
+# #                     # "MoSold", # TODO è stato messo a string
+# #                     "OverallQual",
+# #                     "FullBath",
+# #                     # "YrSold", # TODO è stato messo a string
+# #                     "GarageCars",
+# #                     "YearRemodAdd",
+# #                     "YearBuilt",
+# #                     "GarageYrBlt"]
+# numeric_features = numeric_columns
+# # for y in numeric_features:
+# #     print(complete_df[y].dtype)
+#
+# skew_features = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
+# skews = pd.DataFrame({'skew': skew_features})
+#
+# # print(skew_features)
+#
+# from scipy.special import boxcox1p
+# from scipy.stats import boxcox_normmax
+#
+# high_skew = skew_features[skew_features > 0.5]
+# high_skew = high_skew
+# skew_index = high_skew.index
+#
+# for i in skew_index:
+#     complete_df[i] = boxcox1p(complete_df[i], boxcox_normmax(complete_df[i] + 1))
+#
+# # Check it is adjusted
+# # skew_features2 = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
+# # skews2 = pd.DataFrame({'skew': skew_features2})
+# # print(skew_features2)
 
 
 
@@ -1211,31 +1377,27 @@ for i in skew_index:
 out = ['MSSubClass_150',
        # "BsmtQual_Po", # TODO: se non usiamo l'ordinamento va messa!
         'MSZoning_C (all)']
-columns_to_drop.extend(out)
+columns_to_drop_to_avoid_overfit.extend(out)
 
-# ~~~~~ REMOVE FEATURES ~~~~
-for x in columns_to_drop:
+# ~~~~~ REMOVE FEATURES TO AVOID OVERFIT~~~
+for x in columns_to_drop_to_avoid_overfit:
     assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
-complete_df.drop(columns=columns_to_drop, inplace=True)
+complete_df.drop(columns=columns_to_drop_to_avoid_overfit, inplace=True)
 
 
 # TODO We should remove discordant data (there can't be a single basement-feature with a 'no basement' meaning if at least another one is present
 # TODO We should remove discordant data (there can't be a single garage-feature with a 'no garage' meaning if at least another one is present
 
 
-# %% Check for missing values
-nulls = np.sum(complete_df.isnull())
-nullcols = nulls.loc[(nulls != 0)]
-dtypes = complete_df.dtypes
-dtypes2 = dtypes.loc[(nulls != 0)]
-info = pd.concat([nullcols, dtypes2], axis=1).sort_values(by=0, ascending=False)
-# print(info)
-print("There are", len(nullcols), "columns with missing values")
 
 
 # %% Infos
 print(complete_df.info(verbose=True))
 print(complete_df.info(verbose=False))
+
+
+# %% Check for missing values
+check_missing_values(complete_df)
 
 
 # %% ~~~~~ Split again into train and test ~~~~~

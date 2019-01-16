@@ -30,7 +30,8 @@ def get_stack_gen_model():
     e_l1ratio = [0.8, 0.85, 0.9, 0.95, 0.99, 1]
     elasticnet = make_pipeline(RobustScaler(),
                                ElasticNetCV(max_iter=1e7, alphas=e_alphas,
-                                            cv=kfolds, l1_ratio=e_l1ratio))
+                                            cv=kfolds, l1_ratio=e_l1ratio,
+                                            n_jobs=3))
 
     lightgbm = make_pipeline(RobustScaler(),
                             LGBMRegressor(objective='regression',num_leaves=5,
@@ -39,7 +40,8 @@ def get_stack_gen_model():
                                           bagging_freq = 5, feature_fraction = 0.2319,
                                           feature_fraction_seed=9, bagging_seed=9,
                                           min_data_in_leaf =6,
-                                          min_sum_hessian_in_leaf = 11))
+                                          min_sum_hessian_in_leaf = 11,
+                                          n_jobs=3))
 
     xgboost = make_pipeline(RobustScaler(),
                             XGBRegressor(learning_rate =0.01, n_estimators=3460,
@@ -48,7 +50,8 @@ def get_stack_gen_model():
                                          colsample_bytree=0.7,
                                          objective= 'reg:linear',nthread=4,
                                          scale_pos_weight=1,seed=27,
-                                         reg_alpha=0.00006))
+                                         reg_alpha=0.00006,
+                                         n_jobs=3))
 
 
     #stack

@@ -7,7 +7,6 @@ from sklearn.model_selection import train_test_split
 from FeaturesEngineering import get_engineered_train_test
 from RegressionFunctions import  *
 
-
 from constants import *
 
 # %% Prepare data
@@ -17,39 +16,45 @@ from constants import *
 # -------------------------------------- DEV --------------------------------------
 NUMBER_OF_RANDOM_SPLITS = 10
 TEST_SIZE = 0.35
-PERFORM_VALIDATION = False
+PERFORM_VALIDATION = True
 
 def get_error_random_dev(title=""):
+
     if title:
         print(title)
 
     # %% Split into train and dev
     x_train_red, x_dev, y_train_red, y_dev = train_test_split(
-        x_train, y_train, test_size=TEST_SIZE, random_state=42)
+        x_train, y_train, test_size=TEST_SIZE)
 
+    p =  make_pipeline(RobustScaler(),
+                          RidgeCV(alphas = alphas_alt, cv=kfolds))
 
-    # %% Build models
-    stack_gen_model_dev = get_stack_gen_model()
+    p.fit(x_train_red, y_train_red)
+    predictions_dev = p.predict(x_dev)
 
-
-    # %% Fit models
-    # prepare dataframes without numpy
-    stackX_dev = np.array(x_train_red)
-    stacky_dev = np.array(y_train_red)
-    stack_gen_model_dev = stack_gen_model_dev.fit(stackX_dev, stacky_dev)
-
-
-    # %% Perform predictions on dev
-    # em_preds_dev = elastic_model3.predict(x_dev)
-    # lasso_preds_dev = lasso_model2.predict(x_dev)
-    # ridge_preds_dev = ridge_model2.predict(x_dev)
-    stack_gen_preds_dev = stack_gen_model_dev.predict(x_dev)
-    # xgb_preds_dev = xgb_fit.predict(x_dev)
-    # svr_preds_dev = svr_fit.predict(x_dev)
-    # lgbm_preds_dev = lgbm_fit.predict(x_dev)
-    predictions_dev = stack_gen_preds_dev
-
-
+    # # %% Build models
+    # stack_gen_model_dev = get_stack_gen_model()
+    #
+    #
+    # # %% Fit models
+    # # prepare dataframes without numpy
+    # stackX_dev = np.array(x_train_red)
+    # stacky_dev = np.array(y_train_red)
+    # stack_gen_model_dev = stack_gen_model_dev.fit(stackX_dev, stacky_dev)
+    #
+    #
+    # # %% Perform predictions on dev
+    # # em_preds_dev = elastic_model3.predict(x_dev)
+    # # lasso_preds_dev = lasso_model2.predict(x_dev)
+    # # ridge_preds_dev = ridge_model2.predict(x_dev)
+    # stack_gen_preds_dev = stack_gen_model_dev.predict(x_dev)
+    # # xgb_preds_dev = xgb_fit.predict(x_dev)
+    # # svr_preds_dev = svr_fit.predict(x_dev)
+    # # lgbm_preds_dev = lgbm_fit.predict(x_dev)
+    # predictions_dev = stack_gen_preds_dev
+    #
+    #
     # %% Normalize labels
     y_dev = np.expm1(y_dev)
     predictions_dev = normalize_preidctions(predictions_dev)
@@ -79,27 +84,34 @@ if PERFORM_VALIDATION:
 # -------------------------------------- TEST --------------------------------------
 print("Performing predictions")
 
-# %% Build models
-stack_gen_model_test = get_stack_gen_model()
+p = make_pipeline(RobustScaler(),
+                  RidgeCV(alphas=alphas_alt, cv=kfolds))
 
+p.fit(x_train, y_train)
+predictions_test = p.predict(x_test)
 
-# %% Fit models
-# prepare dataframes without numpy
-stackX_test = np.array(x_train)
-stacky_test = np.array(y_train)
-stack_gen_model_test = stack_gen_model_test.fit(stackX_test, stacky_test)
-
-
-# %% Perform predictions on test
-# em_preds_test = elastic_model3.predict(x_test)
-# lasso_preds_test = lasso_model2.predict(x_test)
-# ridge_preds_test = ridge_model2.predict(x_test)
-stack_gen_preds_test = stack_gen_model_test.predict(x_test)
-# xgb_preds_test = xgb_fit.predict(x_test)
-# svr_preds_test = svr_fit.predict(x_test)
-# lgbm_preds_test = lgbm_fit.predict(x_test)
-predictions_test = stack_gen_preds_test
-
+#
+# # %% Build models
+# stack_gen_model_test = get_stack_gen_model()
+#
+#
+# # %% Fit models
+# # prepare dataframes without numpy
+# stackX_test = np.array(x_train)
+# stacky_test = np.array(y_train)
+# stack_gen_model_test = stack_gen_model_test.fit(stackX_test, stacky_test)
+#
+#
+# # %% Perform predictions on test
+# # em_preds_test = elastic_model3.predict(x_test)
+# # lasso_preds_test = lasso_model2.predict(x_test)
+# # ridge_preds_test = ridge_model2.predict(x_test)
+# stack_gen_preds_test = stack_gen_model_test.predict(x_test)
+# # xgb_preds_test = xgb_fit.predict(x_test)
+# # svr_preds_test = svr_fit.predict(x_test)
+# # lgbm_preds_test = lgbm_fit.predict(x_test)
+# predictions_test = stack_gen_preds_test
+#
 
 # %% Normalize predictions_test && save to file
 result_df_test = normalize_preidctions(predictions_test)
