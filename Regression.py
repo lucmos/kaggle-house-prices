@@ -15,43 +15,59 @@ from constants import *
 
 
 # -------------------------------------- DEV --------------------------------------
+NUMBER_OF_RANDOM_SPLITS = 10
+TEST_SIZE = 0.35
 
-# %% Split into train and dev
-x_train_red, x_dev, y_train_red, y_dev = train_test_split(
-    x_train, y_train, test_size=0.40)
-
-
-# %% Build models
-stack_gen_model_dev = get_stack_gen_model()
-
-
-# %% Fit models
-# prepare dataframes without numpy
-stackX_dev = np.array(x_train_red)
-stacky_dev = np.array(y_train_red)
-stack_gen_model_dev = stack_gen_model_dev.fit(stackX_dev, stacky_dev)
+def get_error_random_dev():
+    # %% Split into train and dev
+    x_train_red, x_dev, y_train_red, y_dev = train_test_split(
+        x_train, y_train, test_size=TEST_SIZE)
 
 
-# %% Perform predictions on dev
-# em_preds_dev = elastic_model3.predict(x_dev)
-# lasso_preds_dev = lasso_model2.predict(x_dev)
-# ridge_preds_dev = ridge_model2.predict(x_dev)
-stack_gen_preds_dev = stack_gen_model_dev.predict(x_dev)
-# xgb_preds_dev = xgb_fit.predict(x_dev)
-# svr_preds_dev = svr_fit.predict(x_dev)
-# lgbm_preds_dev = lgbm_fit.predict(x_dev)
-predictions_dev = stack_gen_preds_dev
+    # %% Build models
+    stack_gen_model_dev = get_stack_gen_model()
 
 
-# %% Normalize labels
-y_dev = np.expm1(y_dev)
-predictions_dev = np.expm1(predictions_dev)
+    # %% Fit models
+    # prepare dataframes without numpy
+    stackX_dev = np.array(x_train_red)
+    stacky_dev = np.array(y_train_red)
+    stack_gen_model_dev = stack_gen_model_dev.fit(stackX_dev, stacky_dev)
 
-# %% Compute error on DEV
-err = np.sqrt(mean_squared_log_error(y_dev, predictions_dev))
-print("ERROR on validation set: {}".format(err))
 
+    # %% Perform predictions on dev
+    # em_preds_dev = elastic_model3.predict(x_dev)
+    # lasso_preds_dev = lasso_model2.predict(x_dev)
+    # ridge_preds_dev = ridge_model2.predict(x_dev)
+    stack_gen_preds_dev = stack_gen_model_dev.predict(x_dev)
+    # xgb_preds_dev = xgb_fit.predict(x_dev)
+    # svr_preds_dev = svr_fit.predict(x_dev)
+    # lgbm_preds_dev = lgbm_fit.predict(x_dev)
+    predictions_dev = stack_gen_preds_dev
+
+
+    # %% Normalize labels
+    y_dev = np.expm1(y_dev)
+    predictions_dev = np.expm1(predictions_dev)
+
+    # %% Compute error on DEV
+    err = np.sqrt(mean_squared_log_error(y_dev, predictions_dev))
+    print("ERROR on validation set: {}".format(err))
+    return err
+
+
+dev_errors = [get_error_random_dev() for _ in range(NUMBER_OF_RANDOM_SPLITS)]
+print("\n\nDEV ERROR ~ Stats over {} random splits with {} test\n"
+      "mean: {}\n"
+      "variance: {}\n"
+      "stdev: {}\n\n".format(NUMBER_OF_RANDOM_SPLITS,
+                             TEST_SIZE,
+                             np.mean(dev_errors),
+                             np.var(dev_errors),
+                             np.std(dev_errors)))
 print("Done validating")
+
+assert False
 
 
 # -------------------------------------- TEST --------------------------------------
