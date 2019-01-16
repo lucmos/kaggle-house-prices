@@ -17,6 +17,7 @@ from constants import *
 # -------------------------------------- DEV --------------------------------------
 NUMBER_OF_RANDOM_SPLITS = 10
 TEST_SIZE = 0.35
+PERFORM_VALIDATION = False
 
 def get_error_random_dev(title=""):
     if title:
@@ -24,7 +25,7 @@ def get_error_random_dev(title=""):
 
     # %% Split into train and dev
     x_train_red, x_dev, y_train_red, y_dev = train_test_split(
-        x_train, y_train, test_size=TEST_SIZE)
+        x_train, y_train, test_size=TEST_SIZE, random_state=42)
 
 
     # %% Build models
@@ -51,7 +52,9 @@ def get_error_random_dev(title=""):
 
     # %% Normalize labels
     y_dev = np.expm1(y_dev)
-    predictions_dev = np.expm1(predictions_dev)
+    predictions_dev = normalize_preidctions(predictions_dev)
+
+
 
     # %% Compute error on DEV
     err = np.sqrt(mean_squared_log_error(y_dev, predictions_dev))
@@ -59,19 +62,22 @@ def get_error_random_dev(title=""):
     return err
 
 
-dev_errors = [get_error_random_dev("{}/{}".format(i+1, NUMBER_OF_RANDOM_SPLITS)) for i in range(NUMBER_OF_RANDOM_SPLITS)]
-print("\n\n> DEV ERROR ~ Stats over {} random splits with {} test\n"
-      "> mean: {}\n"
-      "> variance: {}\n"
-      "> stdev: {}\n\n".format(NUMBER_OF_RANDOM_SPLITS,
-                             TEST_SIZE,
-                             np.mean(dev_errors),
-                             np.var(dev_errors),
-                             np.std(dev_errors)))
-print("Done validating")
+if PERFORM_VALIDATION:
+    print("Performing validation")
+    dev_errors = [get_error_random_dev("{}/{}".format(i+1, NUMBER_OF_RANDOM_SPLITS)) for i in range(NUMBER_OF_RANDOM_SPLITS)]
+    print("\n\n> DEV ERROR ~ Stats over {} random splits with {} test\n"
+          "> mean: {}\n"
+          "> variance: {}\n"
+          "> stdev: {}\n\n".format(NUMBER_OF_RANDOM_SPLITS,
+                                 TEST_SIZE,
+                                 np.mean(dev_errors),
+                                 np.var(dev_errors),
+                                 np.std(dev_errors)))
+    print("Done validating")
 
 
 # -------------------------------------- TEST --------------------------------------
+print("Performing predictions")
 
 # %% Build models
 stack_gen_model_test = get_stack_gen_model()
@@ -96,8 +102,7 @@ predictions_test = stack_gen_preds_test
 
 
 # %% Normalize predictions_test && save to file
-result_df_test = pd.DataFrame()
-result_df_test['Id'] = test_ids
-result_df_test['SalePrice'] = np.expm1(predictions_test)
+result_df_test = normalize_preidctions(predictions_test)
+result_df_test.insert(0, 'Id', test_ids)
 result_df_test.to_csv(Path(predictions_dir, 'predictions_test.csv'), index=False)
 print("DONE")

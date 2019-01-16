@@ -77,3 +77,12 @@ TEST_SIZE = 0.35
 > stdev: 0.006806571221006368
 
 
+# Config 7
+- Follow the top 10
+- Add feators, do ohe and ints each time when applicable
+- Add logs
+- Add squares
+- Fit predictions if too large
+- Add simplified features
+- Modify the processing of some features
+- 

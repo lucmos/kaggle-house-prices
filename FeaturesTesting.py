@@ -54,7 +54,7 @@ feature = 'GarageFinish'
 # feature = 'GarageQual'
 # feature = 'GarageCond'
 feature = 'GarageYrBlt'
-feature = 'BsmtQual'
+feature = 'MasVnrType'
 
 
 nan_mask = complete_df.isnull().any()
