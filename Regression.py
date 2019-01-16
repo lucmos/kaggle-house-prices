@@ -1,117 +1,86 @@
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
-from lightgbm import LGBMRegressor
-
-from sklearn.linear_model import Lasso, LassoCV, RidgeCV, ElasticNetCV
-from sklearn.model_selection import KFold
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import RobustScaler
-from xgboost import XGBRegressor
+from sklearn.metrics import mean_squared_log_error
+from sklearn.model_selection import train_test_split
 
 from FeaturesEngineering import get_engineered_train_test
+from RegressionFunctions import  *
 
-predictions_dir = "./predictions/"
 
+from constants import *
+
+# %% Prepare data
 ((train_ids, x_train, y_train), (test_ids, x_test)) = get_engineered_train_test()
 
-# %% Test predictions
-# predictor = make_pipeline(XGBRegressor(learning_rate=0.01, n_estimators=3460,
-#                                        max_depth=3, min_child_weight=0,
-#                                        gamma=0, subsample=0.7,
-#                                        colsample_bytree=0.7,
-#                                        objective='reg:linear', nthread=4,
-#                                        scale_pos_weight=1, seed=27,
-#                                        reg_alpha=0.00006))
-# #
-# predictor = make_pipeline(RobustScaler(),
-#                           Lasso(alpha=0.0003, random_state=1, max_iter=50000))
-#
 
-# alphas = [0.00005, 0.0001, 0.0003, 0.0005, 0.0007,
-#           0.0009, 0.01]
-# alphas2 = [0.00005, 0.0001, 0.0002, 0.0003, 0.0004, 0.0005,
-#            0.0006, 0.0007, 0.0008]
-#
-#
-# lasso_model2 = make_pipeline(RobustScaler(),
-#                              LassoCV(max_iter=1e7,
-#                                     alphas = alphas2,
-#                                     random_state = 42)).fit(x_train, y_train)
-# predictor = lasso_model2
+# -------------------------------------- DEV --------------------------------------
+
+# %% Split into train and dev
+x_train_red, x_dev, y_train_red, y_dev = train_test_split(
+    x_train, y_train, test_size=0.40)
 
 
-from mlxtend.regressor import StackingCVRegressor
-from sklearn.pipeline import make_pipeline
-
-kfolds = KFold(n_splits=10, shuffle=True, random_state=23)
+# %% Build models
+stack_gen_model_dev = get_stack_gen_model()
 
 
-alphas_alt = [14.5, 14.6, 14.7, 14.8, 14.9, 15, 15.1, 15.2, 15.3, 15.4, 15.5]
-#setup models
-ridge = make_pipeline(RobustScaler(),
-                      RidgeCV(alphas = alphas_alt, cv=kfolds))
-
-alphas2 = [0.00005, 0.0001, 0.0002, 0.0003, 0.0004, 0.0005,
-           0.0006, 0.0007, 0.0008]
-lasso = make_pipeline(RobustScaler(),
-                      LassoCV(max_iter=1e7, alphas = alphas2,
-                              random_state = 42, cv=kfolds))
-
-e_alphas = [0.0001, 0.0002, 0.0003, 0.0004, 0.0005, 0.0006, 0.0007]
-e_l1ratio = [0.8, 0.85, 0.9, 0.95, 0.99, 1]
-elasticnet = make_pipeline(RobustScaler(),
-                           ElasticNetCV(max_iter=1e7, alphas=e_alphas,
-                                        cv=kfolds, l1_ratio=e_l1ratio))
-
-lightgbm = make_pipeline(RobustScaler(),
-                        LGBMRegressor(objective='regression',num_leaves=5,
-                                      learning_rate=0.05, n_estimators=720,
-                                      max_bin = 55, bagging_fraction = 0.8,
-                                      bagging_freq = 5, feature_fraction = 0.2319,
-                                      feature_fraction_seed=9, bagging_seed=9,
-                                      min_data_in_leaf =6,
-                                      min_sum_hessian_in_leaf = 11))
-
-xgboost = make_pipeline(RobustScaler(),
-                        XGBRegressor(learning_rate =0.01, n_estimators=3460,
-                                     max_depth=3,min_child_weight=0 ,
-                                     gamma=0, subsample=0.7,
-                                     colsample_bytree=0.7,
-                                     objective= 'reg:linear',nthread=4,
-                                     scale_pos_weight=1,seed=27,
-                                     reg_alpha=0.00006))
+# %% Fit models
+# prepare dataframes without numpy
+stackX_dev = np.array(x_train_red)
+stacky_dev = np.array(y_train_red)
+stack_gen_model_dev = stack_gen_model_dev.fit(stackX_dev, stacky_dev)
 
 
-#stack
-stack_gen = StackingCVRegressor(regressors=(ridge, lasso, elasticnet,
-                                            xgboost,
-                                            lightgbm
-                                            ),
-                               meta_regressor=xgboost,
-                               use_features_in_secondary=True)
+# %% Perform predictions on dev
+# em_preds_dev = elastic_model3.predict(x_dev)
+# lasso_preds_dev = lasso_model2.predict(x_dev)
+# ridge_preds_dev = ridge_model2.predict(x_dev)
+stack_gen_preds_dev = stack_gen_model_dev.predict(x_dev)
+# xgb_preds_dev = xgb_fit.predict(x_dev)
+# svr_preds_dev = svr_fit.predict(x_dev)
+# lgbm_preds_dev = lgbm_fit.predict(x_dev)
+predictions_dev = stack_gen_preds_dev
 
-#prepare dataframes
-stackX = np.array(x_train)
-stacky = np.array(y_train)
-stack_gen_model = stack_gen.fit(stackX, stacky)
 
-# em_preds = elastic_model3.predict(x_test)
-# lasso_preds = lasso_model2.predict(x_test)
-# ridge_preds = ridge_model2.predict(x_test)
-stack_gen_preds = stack_gen_model.predict(x_test)
-# xgb_preds = xgb_fit.predict(x_test)
-# svr_preds = svr_fit.predict(x_test)
-# lgbm_preds = lgbm_fit.predict(x_test)
+# %% Normalize labels
+y_dev = np.expm1(y_dev)
+predictions_dev = np.expm1(predictions_dev)
 
-predictions = stack_gen_preds
-# predictor.fit(x_train, y_train)
-#
-# predictions = predictor.predict(x_test)
-result_df = pd.DataFrame()
-result_df['Id'] = test_ids
-result_df['SalePrice'] = np.expm1(predictions)
-result_df.to_csv(Path(predictions_dir, 'predictions_v4.csv'), index=False)
-#
+# %% Compute error on DEV
+err = np.sqrt(mean_squared_log_error(y_dev, predictions_dev))
+print("ERROR on validation set: {}".format(err))
+
+print("Done validating")
+
+
+# -------------------------------------- TEST --------------------------------------
+
+# %% Build models
+stack_gen_model_test = get_stack_gen_model()
+
+
+# %% Fit models
+# prepare dataframes without numpy
+stackX_test = np.array(x_train)
+stacky_test = np.array(y_train)
+stack_gen_model_test = stack_gen_model_test.fit(stackX_test, stacky_test)
+
+
+# %% Perform predictions on test
+# em_preds_test = elastic_model3.predict(x_test)
+# lasso_preds_test = lasso_model2.predict(x_test)
+# ridge_preds_test = ridge_model2.predict(x_test)
+stack_gen_preds_test = stack_gen_model_test.predict(x_test)
+# xgb_preds_test = xgb_fit.predict(x_test)
+# svr_preds_test = svr_fit.predict(x_test)
+# lgbm_preds_test = lgbm_fit.predict(x_test)
+predictions_test = stack_gen_preds_test
+
+
+# %% Normalize predictions_test && save to file
+result_df_test = pd.DataFrame()
+result_df_test['Id'] = test_ids
+result_df_test['SalePrice'] = np.expm1(predictions_test)
+result_df_test.to_csv(Path(predictions_dir, 'predictions_test.csv'), index=False)
 print("DONE")

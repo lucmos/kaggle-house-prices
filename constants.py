@@ -1,3 +1,3 @@
 # %% ~~~~~ GLOBAL CONSTANTS ~~~~~
 dataset_dir = 'dataset'
-predictions_dir = 'predictions'
+predictions_dir = './predictions/'

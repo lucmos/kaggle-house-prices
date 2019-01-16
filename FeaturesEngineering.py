@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from EngineeringFunctions import *
+from FeaturesFunctions import *
 from constants import *
 
 # %% ~~~~~ GLOBAL SETTINGS ~~~~~
@@ -1143,12 +1143,12 @@ nullcols = nulls.loc[(nulls != 0)]
 dtypes = complete_df.dtypes
 dtypes2 = dtypes.loc[(nulls != 0)]
 info = pd.concat([nullcols, dtypes2], axis=1).sort_values(by=0, ascending=False)
-print(info)
+# print(info)
 print("There are", len(nullcols), "columns with missing values")
 
 
 # %% Infos
-print(complete_df.info(verbose=True))
+# print(complete_df.info(verbose=True))
 # print(complete_df.info(verbose=False))
 
 
@@ -1160,9 +1160,9 @@ assert test_len == x_test.shape[0]
 
 
 # %% ~~~~~ Check shapes ~~~~~
-print(x_train.shape)
-print(y_train.shape)
-print(x_test.shape)
+# print(x_train.shape)
+# print(y_train.shape)
+# print(x_test.shape)
 
 
 def get_engineered_train_test():
