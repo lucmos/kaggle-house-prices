@@ -1330,35 +1330,35 @@ complete_df = addSquared(complete_df, sqpredlist)
 
 
 
-# # %% ~~~~~ Resolve skewness ~~~~ TODO camuffa codice
-# from scipy.stats import skew
-#
-# numeric_features = numeric_columns
-# skew_features = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
-# skews = pd.DataFrame({'skew': skew_features})
-#
-# print()
-# print('--------- SKEW OF FEATURES ----------')
-# print(skew_features)
-# print()
-#
-# from scipy.special import boxcox1p
-# from scipy.stats import boxcox_normmax
-#
-# high_skew = skew_features[skew_features > 0.5]
-# high_skew = high_skew
-# skew_index = high_skew.index
-#
-# for i in skew_index:
-#     complete_df[i] = boxcox1p(complete_df[i], boxcox_normmax(complete_df[i] + 1))
-#
-# # Check it is adjusted
-# skew_features2 = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
-# skews2 = pd.DataFrame({'skew': skew_features2})
-# print()
-# print('--------- SKEW OF FEATURES AFTER NORMALIZATION ----------')
-# print(skew_features2)
-# print()
+# %% ~~~~~ Resolve skewness ~~~~ TODO camuffa codice
+from scipy.stats import skew
+
+numeric_features = numeric_columns
+skew_features = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
+skews = pd.DataFrame({'skew': skew_features})
+
+print()
+print('--------- SKEW OF FEATURES ----------')
+print(skew_features)
+print()
+
+from scipy.special import boxcox1p
+from scipy.stats import boxcox_normmax
+
+high_skew = skew_features[skew_features > 0.5]
+high_skew = high_skew
+skew_index = high_skew.index
+
+for i in skew_index:
+    complete_df[i] = boxcox1p(complete_df[i], boxcox_normmax(complete_df[i] + 1))
+
+# Check it is adjusted
+skew_features2 = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
+skews2 = pd.DataFrame({'skew': skew_features2})
+print()
+print('--------- SKEW OF FEATURES AFTER NORMALIZATION ----------')
+print(skew_features2)
+print()
 
 
 
