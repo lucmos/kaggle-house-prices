@@ -14,9 +14,10 @@ from constants import *
 
 
 # -------------------------------------- DEV --------------------------------------
-NUMBER_OF_RANDOM_SPLITS = 10
-TEST_SIZE = 0.35
+NUMBER_OF_RANDOM_SPLITS = 50
+TEST_SIZE = 0.40
 PERFORM_VALIDATION = True
+PERFORM_PREDICTIONS = True
 
 def get_error_random_dev(title=""):
 
@@ -24,45 +25,15 @@ def get_error_random_dev(title=""):
         print(title)
 
     # %% Split into train and dev
-    x_train_red, x_dev, y_train_red, y_dev = train_test_split(
+    x_dev, x_val, y_dev, y_val = train_test_split(
         x_train, y_train, test_size=TEST_SIZE)
 
-    p =  make_pipeline(RobustScaler(),
-                          RidgeCV(alphas = alphas_alt, cv=kfolds))
-
-    p.fit(x_train_red, y_train_red)
-    predictions_dev = p.predict(x_dev)
-
-    # # %% Build models
-    # stack_gen_model_dev = get_stack_gen_model()
-    #
-    #
-    # # %% Fit models
-    # # prepare dataframes without numpy
-    # stackX_dev = np.array(x_train_red)
-    # stacky_dev = np.array(y_train_red)
-    # stack_gen_model_dev = stack_gen_model_dev.fit(stackX_dev, stacky_dev)
-    #
-    #
-    # # %% Perform predictions on dev
-    # # em_preds_dev = elastic_model3.predict(x_dev)
-    # # lasso_preds_dev = lasso_model2.predict(x_dev)
-    # # ridge_preds_dev = ridge_model2.predict(x_dev)
-    # stack_gen_preds_dev = stack_gen_model_dev.predict(x_dev)
-    # # xgb_preds_dev = xgb_fit.predict(x_dev)
-    # # svr_preds_dev = svr_fit.predict(x_dev)
-    # # lgbm_preds_dev = lgbm_fit.predict(x_dev)
-    # predictions_dev = stack_gen_preds_dev
-    #
-    #
-    # %% Normalize labels
-    y_dev = np.expm1(y_dev)
-    predictions_dev = normalize_preidctions(predictions_dev)
-
-
+    predictions_dev = fit_predict(x_dev, y_dev, x_val)
 
     # %% Compute error on DEV
-    err = np.sqrt(mean_squared_log_error(y_dev, predictions_dev))
+    y_val = np.expm1(y_val)
+    err = np.sqrt(mean_squared_log_error(y_val, predictions_dev))
+
     print("ERROR on validation set: {}".format(err))
     return err
 
@@ -70,7 +41,7 @@ def get_error_random_dev(title=""):
 if PERFORM_VALIDATION:
     print("Performing validation")
     dev_errors = [get_error_random_dev("{}/{}".format(i+1, NUMBER_OF_RANDOM_SPLITS)) for i in range(NUMBER_OF_RANDOM_SPLITS)]
-    print("\n\n> DEV ERROR ~ Stats over {} random splits with {} test\n"
+    print("\n\nDEV ERROR ~ Stats over {} random splits with {} test\n"
           "> mean: {}\n"
           "> variance: {}\n"
           "> stdev: {}\n\n".format(NUMBER_OF_RANDOM_SPLITS,
@@ -82,39 +53,12 @@ if PERFORM_VALIDATION:
 
 
 # -------------------------------------- TEST --------------------------------------
-print("Performing predictions")
+if PERFORM_PREDICTIONS:
+    print("Performing predictions")
+    predictions_test = fit_predict(x_train, y_train, x_test)
 
-p = make_pipeline(RobustScaler(),
-                  RidgeCV(alphas=alphas_alt, cv=kfolds))
-
-p.fit(x_train, y_train)
-predictions_test = p.predict(x_test)
-
-#
-# # %% Build models
-# stack_gen_model_test = get_stack_gen_model()
-#
-#
-# # %% Fit models
-# # prepare dataframes without numpy
-# stackX_test = np.array(x_train)
-# stacky_test = np.array(y_train)
-# stack_gen_model_test = stack_gen_model_test.fit(stackX_test, stacky_test)
-#
-#
-# # %% Perform predictions on test
-# # em_preds_test = elastic_model3.predict(x_test)
-# # lasso_preds_test = lasso_model2.predict(x_test)
-# # ridge_preds_test = ridge_model2.predict(x_test)
-# stack_gen_preds_test = stack_gen_model_test.predict(x_test)
-# # xgb_preds_test = xgb_fit.predict(x_test)
-# # svr_preds_test = svr_fit.predict(x_test)
-# # lgbm_preds_test = lgbm_fit.predict(x_test)
-# predictions_test = stack_gen_preds_test
-#
-
-# %% Normalize predictions_test && save to file
-result_df_test = normalize_preidctions(predictions_test)
-result_df_test.insert(0, 'Id', test_ids)
-result_df_test.to_csv(Path(predictions_dir, 'predictions_test.csv'), index=False)
-print("DONE")
+    predictions_df = pd.DataFrame()
+    predictions_df.insert(0, 'Id', test_ids)
+    predictions_df['SalePrice'] = predictions_test
+    predictions_df.to_csv(Path(predictions_dir, 'predictions_test.csv'), index=False)
+    print("DONE")

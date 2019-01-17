@@ -16,6 +16,41 @@ alphas_alt = [14.49, 14.61, 14.69, 14.81, 14.89, 15.01, 15.09, 15.21, 15.29, 15.
 alphas2 = [0.000051, 0.00009, 0.00021, 0.00029, 0.00041, 0.00051, 0.00059, 0.00071, 0.00078]
 
 
+def fit_predict(x_train, y_train, x_test):
+    predicor = make_pipeline(RobustScaler(),
+                      RidgeCV(alphas=alphas_alt, cv=kfolds))
+
+    predicor.fit(x_train, y_train)
+    predictions = predicor.predict(x_test)
+
+    # # %% Build models
+    # stack_gen_model_dev = get_stack_gen_model()
+    #
+    #
+    # # %% Fit models
+    # # prepare dataframes without numpy
+    # stackX_dev = np.array(x_dev)
+    # stacky_dev = np.array(y_dev)
+    # stack_gen_model_dev = stack_gen_model_dev.fit(stackX_dev, stacky_dev)
+    #
+    #
+    # # %% Perform predictions on dev
+    # # em_preds_dev = elastic_model3.predict(x_val)
+    # # lasso_preds_dev = lasso_model2.predict(x_val)
+    # # ridge_preds_dev = ridge_model2.predict(x_val)
+    # stack_gen_preds_dev = stack_gen_model_dev.predict(x_val)
+    # # xgb_preds_dev = xgb_fit.predict(x_val)
+    # # svr_preds_dev = svr_fit.predict(x_val)
+    # # lgbm_preds_dev = lgbm_fit.predict(x_val)
+    # predictions = stack_gen_preds_dev
+    #
+    #
+
+    predictions = np.expm1(predictions)
+    # predictions = normalize_predictions(predictions)
+    return predictions
+
+
 # %% Build stack gen model
 def get_stack_gen_model():
     #setup models
@@ -64,14 +99,11 @@ def get_stack_gen_model():
     return stack_gen
 
 
-def normalize_preidctions(predictions):
-    predictions = np.expm1(predictions)
-
+def normalize_predictions(predictions):
     predictions_df = pd.DataFrame()
-    predictions_df['SalePrice'] = predictions
-    q1 = predictions_df['SalePrice'].quantile(0.0042)
-    q2 = predictions_df['SalePrice'].quantile(0.99)
-    predictions_df['SalePrice'] = predictions_df['SalePrice'].apply(lambda x: x if x > q1 else x * 0.77)
-    predictions_df['SalePrice'] = predictions_df['SalePrice'].apply(lambda x: x if x < q2 else x * 1.1)
-
-    return predictions_df
+    predictions_df['norm'] = predictions
+    q1 = predictions_df['norm'].quantile(0.0042)
+    q2 = predictions_df['norm'].quantile(0.99)
+    predictions_df['norm'] = predictions_df['norm'].apply(lambda x: x if x > q1 else x * 0.77)
+    predictions_df['norm'] = predictions_df['norm'].apply(lambda x: x if x < q2 else x * 1.1)
+    return predictions_df['norm'].values
