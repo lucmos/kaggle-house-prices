@@ -19,7 +19,7 @@ def check_missing_values(complete_df):
     nullcols = nulls.loc[(nulls != 0)]
     dtypes = complete_df.dtypes
     dtypes2 = dtypes.loc[(nulls != 0)]
-    info = pd.concat([nullcols, dtypes2], axis=1).sort_values(by=0, ascending=False)
+    # info = pd.concat([nullcols, dtypes2], axis=1).sort_values(by=0, ascending=False)
     # print(info)
     print("There are", len(nullcols), "columns with missing values")
 

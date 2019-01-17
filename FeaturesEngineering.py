@@ -16,6 +16,7 @@ from constants import *
 # Pandas initialization
 pd.set_option('display.width', 1000)
 pd.set_option('display.max_columns', 80)
+pd.set_option('display.max_rows', 100)
 pd.set_option('display.float_format', lambda x: '{:.3f}'.format(x))
 
 
@@ -1202,75 +1203,40 @@ numeric_columns.append('SaleType')
 columns_to_ohe.append('SaleCondition')
 
 
-# %% REMOVE BAD FEATURES
-for x in columns_to_drop:
-    assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
-complete_df.drop(columns=columns_to_drop, inplace=True)
-
-
-# %% ASSERTIONS
-assert len(columns_to_ohe) + len(numeric_columns) + (len(boolean_columns)) == complete_df.shape[1], "Number of features mismatch"
-
-# %% PERFORM ONE HOT ENCODING
-for x in columns_to_ohe:
-    assert x in complete_df
-    complete_df[x] = complete_df[x].astype(str)
-
-complete_df = pd.get_dummies(complete_df, columns=columns_to_ohe)
-
-print(complete_df.info(verbose=True))
-
-# %% ~~~~~ FANCY IMPUTER ~~~~~
-# complete_df = RobustScaler().fit_transform(complete_df)
-# complete_df = fi.NuclearNormMinimization().fit_transform(complete_df)
-check_missing_values(complete_df)
-
-index = complete_df.index
-columns = complete_df.columns
-
-# complete_df = BiScaler().fit_transform(complete_df.values)
-# complete_df = SoftImpute().fit_transform(complete_df)
-# complete_df = KNN().fit_transform(complete_df)
-# complete_df = IterativeSVD().fit_transform(complete_df)
-# complete_df = BiScaler().fit_transform(complete_df.values)
-complete_df = KNN(k=10).fit_transform(complete_df)
-# complete_df = NuclearNormMinimization().fit_transform(complete_df)
-
-complete_df = pd.DataFrame(complete_df, index=index, columns = columns)
-
-print(complete_df.head())
-# assert False
-
-
-
-
 # ~~~~~ ADD NEW FEATURES ~~~~
 
 # %% TotalSF
 # We can build a new feature from those two and the basement info: the total area of the two floors + the basement
 complete_df['TotalSF'] = complete_df['1stFlrSF'] + complete_df['2ndFlrSF'] + complete_df['TotalBsmtSF']
+numeric_columns.append('TotalSF')
 
 # %% Total home qual
 complete_df['Total_Home_Quality'] = complete_df['OverallQual'] + complete_df['OverallCond']
+numeric_columns.append('Total_Home_Quality')
 
 # %% TotalArea
 area_cols = ['LotFrontage', 'LotArea', 'MasVnrArea', 'BsmtFinSF1', 'BsmtFinSF2', 'BsmtUnfSF',
              'TotalBsmtSF', '1stFlrSF', '2ndFlrSF', 'GrLivArea', 'GarageArea', 'WoodDeckSF',
              'OpenPorchSF', 'EnclosedPorch', '3SsnPorch', 'ScreenPorch', 'LowQualFinSF', 'PoolArea']
 complete_df['TotalArea'] = complete_df[area_cols].sum(axis=1)
+numeric_columns.append('TotalArea')
+
 
 # %% Total_sqr_footage
 complete_df['Total_sqr_footage'] = (complete_df['BsmtFinSF1'] + complete_df['BsmtFinSF2'] +
                                  complete_df['1stFlrSF'] + complete_df['2ndFlrSF'])
+numeric_columns.append('Total_sqr_footage')
 
 # %% Total_Bathrooms
 complete_df['Total_Bathrooms'] = (complete_df['FullBath'] + (0.5*complete_df['HalfBath']) +
                                complete_df['BsmtFullBath'] + (0.5*complete_df['BsmtHalfBath']))
+numeric_columns.append('Total_Bathrooms')
 
 # %% Total_porch_sf
 complete_df['Total_porch_sf'] = (complete_df['OpenPorchSF'] + complete_df['3SsnPorch'] +
                               complete_df['EnclosedPorch'] + complete_df['ScreenPorch'] +
                              complete_df['WoodDeckSF'])
+numeric_columns.append('Total_porch_sf')
 
 
 # %% Add logs
@@ -1307,6 +1273,49 @@ sqpredlist = ['YearRemodAdd', 'LotFrontage_log',
               'GarageCars_log', 'GarageArea_log',
               'OverallQual','ExterQual','BsmtQual','GarageQual','FireplaceQu','KitchenQual']
 complete_df = addSquared(complete_df, sqpredlist)
+
+
+# %% REMOVE BAD FEATURES
+for x in columns_to_drop:
+    assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
+complete_df.drop(columns=columns_to_drop, inplace=True)
+
+
+# %% ASSERTIONS
+assert len(columns_to_ohe) + len(numeric_columns) + (len(boolean_columns) + len(sqpredlist) + len(loglist)) == complete_df.shape[1], "Number of features mismatch"
+
+# %% PERFORM ONE HOT ENCODING
+for x in columns_to_ohe:
+    assert x in complete_df
+    complete_df[x] = complete_df[x].astype(str)
+
+complete_df = pd.get_dummies(complete_df, columns=columns_to_ohe)
+
+# print(complete_df.info(verbose=True))
+
+# %% ~~~~~ FANCY IMPUTER ~~~~~
+# complete_df = RobustScaler().fit_transform(complete_df)
+# complete_df = fi.NuclearNormMinimization().fit_transform(complete_df)
+check_missing_values(complete_df)
+
+index = complete_df.index
+columns = complete_df.columns
+
+# complete_df = BiScaler().fit_transform(complete_df.values)
+# complete_df = SoftImpute().fit_transform(complete_df)
+# complete_df = KNN().fit_transform(complete_df)
+# complete_df = IterativeSVD().fit_transform(complete_df)
+# complete_df = BiScaler().fit_transform(complete_df.values)
+complete_df = KNN(k=10).fit_transform(complete_df)
+# complete_df = NuclearNormMinimization().fit_transform(complete_df)
+
+complete_df = pd.DataFrame(complete_df, index=index, columns = columns)
+
+# print(complete_df.head())
+# assert False
+
+
+
 
 
 
@@ -1350,14 +1359,17 @@ from scipy.stats import skew
 #                     "YearRemodAdd",
 #                     "YearBuilt",
 #                     "GarageYrBlt"]
-# numeric_features = numeric_columns
-# # for y in numeric_features:
-# #     print(complete_df[y].dtype)
-#
+numeric_features = numeric_columns
+# for y in numeric_features:
+#     print(complete_df[y].dtype)
+
 # skew_features = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
 # skews = pd.DataFrame({'skew': skew_features})
 #
+# print()
+# print('--------- SKEW OF FEATURES ----------')
 # print(skew_features)
+# print()
 #
 # from scipy.special import boxcox1p
 # from scipy.stats import boxcox_normmax
@@ -1372,7 +1384,10 @@ from scipy.stats import skew
 # # Check it is adjusted
 # skew_features2 = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
 # skews2 = pd.DataFrame({'skew': skew_features2})
+# print()
+# print('--------- SKEW OF FEATURES AFTER NORMALIZATION ----------')
 # print(skew_features2)
+# print()
 
 
 
@@ -1395,8 +1410,8 @@ complete_df.drop(columns=columns_to_drop_to_avoid_overfit, inplace=True)
 
 
 # %% Infos
-print(complete_df.info(verbose=True))
-print(complete_df.info(verbose=False))
+# print(complete_df.info(verbose=True))
+# print(complete_df.info(verbose=False))
 
 
 # %% Check for missing values
@@ -1411,12 +1426,13 @@ assert test_len == x_test.shape[0]
 
 
 # %% ~~~~~ Check shapes ~~~~~
-print(x_train.shape)
-print(y_train.shape)
-print(x_test.shape)
+print("x_train shape: {}\n"
+      "y_train shape: {}\n"
+      "x_test shape: {}\n".format(
+    x_train.shape, y_train.shape, x_test.shape
+))
 
 
 def get_engineered_train_test():
     return (train_ids, x_train, y_train), (test_ids, x_test)
 
-assert False
