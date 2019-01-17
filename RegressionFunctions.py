@@ -47,7 +47,7 @@ def fit_predict(x_train, y_train, x_test):
     #
 
     predictions = np.expm1(predictions)
-    # predictions = normalize_predictions(predictions)
+    predictions = normalize_predictions(predictions)
     return predictions
 
 

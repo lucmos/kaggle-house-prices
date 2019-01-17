@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 import fancyimpute as fi
-from fancyimpute import BiScaler, SoftImpute, IterativeImputer, KNN
+from fancyimpute import BiScaler, SoftImpute, IterativeImputer, KNN, NuclearNormMinimization, IterativeSVD
 from sklearn.preprocessing import RobustScaler
 
 from FeaturesFunctions import *
@@ -1228,10 +1228,13 @@ check_missing_values(complete_df)
 index = complete_df.index
 columns = complete_df.columns
 
-# complete_df = BiScaler().fit_transform(complete_df.as_matrix())
+# complete_df = BiScaler().fit_transform(complete_df.values)
 # complete_df = SoftImpute().fit_transform(complete_df)
-complete_df = KNN().fit_transform(complete_df)
-# complete_df = IterativeImputer().fit_transform(complete_df)
+# complete_df = KNN().fit_transform(complete_df)
+# complete_df = IterativeSVD().fit_transform(complete_df)
+# complete_df = BiScaler().fit_transform(complete_df.values)
+complete_df = KNN(k=10).fit_transform(complete_df)
+# complete_df = NuclearNormMinimization().fit_transform(complete_df)
 
 complete_df = pd.DataFrame(complete_df, index=index, columns = columns)
 
@@ -1309,44 +1312,44 @@ complete_df = addSquared(complete_df, sqpredlist)
 
 
 
-# # %% ~~~~~ Resolve skewness ~~~~ TODO camuffa codice
-# from scipy.stats import skew
-#
-# # numeric_features = ["MiscVal",
-# #                     "PoolArea",
-# #                     "LotArea",
-# #                     "LowQualFinSF",
-# #                     "3SsnPorch",
-# #                     "KitchenAbvGr",
-# #                     "BsmtFinSF2",
-# #                     "EnclosedPorch",
-# #                     "ScreenPorch",
-# #                     "BsmtHalfBath",
-# #                     "MasVnrArea",
-# #                     "OpenPorchSF",
-# #                     "WoodDeckSF",
-# #                     "1stFlrSF",
-# #                     "LotFrontage",
-# #                     "GrLivArea",
-# #                     "BsmtFinSF1",
-# #                     "BsmtUnfSF",
-# #                     "2ndFlrSF",
-# #                     "TotRmsAbvGrd",
-# #                     "Fireplaces",
-# #                     "HalfBath",
-# #                     "TotalBsmtSF",
-# #                     "BsmtFullBath",
-# #                     "OverallCond",
-# #                     "BedroomAbvGr",
-# #                     "GarageArea",
-# #                     # "MoSold", # TODO è stato messo a string
-# #                     "OverallQual",
-# #                     "FullBath",
-# #                     # "YrSold", # TODO è stato messo a string
-# #                     "GarageCars",
-# #                     "YearRemodAdd",
-# #                     "YearBuilt",
-# #                     "GarageYrBlt"]
+# %% ~~~~~ Resolve skewness ~~~~ TODO camuffa codice
+from scipy.stats import skew
+
+# numeric_features = ["MiscVal",
+#                     "PoolArea",
+#                     "LotArea",
+#                     "LowQualFinSF",
+#                     "3SsnPorch",
+#                     "KitchenAbvGr",
+#                     "BsmtFinSF2",
+#                     "EnclosedPorch",
+#                     "ScreenPorch",
+#                     "BsmtHalfBath",
+#                     "MasVnrArea",
+#                     "OpenPorchSF",
+#                     "WoodDeckSF",
+#                     "1stFlrSF",
+#                     "LotFrontage",
+#                     "GrLivArea",
+#                     "BsmtFinSF1",
+#                     "BsmtUnfSF",
+#                     "2ndFlrSF",
+#                     "TotRmsAbvGrd",
+#                     "Fireplaces",
+#                     "HalfBath",
+#                     "TotalBsmtSF",
+#                     "BsmtFullBath",
+#                     "OverallCond",
+#                     "BedroomAbvGr",
+#                     "GarageArea",
+#                     # "MoSold", # TODO è stato messo a string
+#                     "OverallQual",
+#                     "FullBath",
+#                     # "YrSold", # TODO è stato messo a string
+#                     "GarageCars",
+#                     "YearRemodAdd",
+#                     "YearBuilt",
+#                     "GarageYrBlt"]
 # numeric_features = numeric_columns
 # # for y in numeric_features:
 # #     print(complete_df[y].dtype)
@@ -1354,7 +1357,7 @@ complete_df = addSquared(complete_df, sqpredlist)
 # skew_features = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
 # skews = pd.DataFrame({'skew': skew_features})
 #
-# # print(skew_features)
+# print(skew_features)
 #
 # from scipy.special import boxcox1p
 # from scipy.stats import boxcox_normmax
@@ -1367,9 +1370,9 @@ complete_df = addSquared(complete_df, sqpredlist)
 #     complete_df[i] = boxcox1p(complete_df[i], boxcox_normmax(complete_df[i] + 1))
 #
 # # Check it is adjusted
-# # skew_features2 = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
-# # skews2 = pd.DataFrame({'skew': skew_features2})
-# # print(skew_features2)
+# skew_features2 = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
+# skews2 = pd.DataFrame({'skew': skew_features2})
+# print(skew_features2)
 
 
 
@@ -1415,3 +1418,5 @@ print(x_test.shape)
 
 def get_engineered_train_test():
     return (train_ids, x_train, y_train), (test_ids, x_test)
+
+assert False
