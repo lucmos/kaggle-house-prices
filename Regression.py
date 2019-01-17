@@ -19,6 +19,7 @@ TEST_SIZE = 0.40
 PERFORM_VALIDATION = True
 PERFORM_PREDICTIONS = True
 
+
 def get_error_random_dev(title=""):
 
     if title:
