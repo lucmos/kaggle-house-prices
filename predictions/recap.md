@@ -153,3 +153,14 @@ DEV ERROR ~ Stats over 50 random splits with 0.5 test
 # COnfig 8
 - Mean with Lasso Ridge e Elastic
 kaggle:0.11604
+
+# COnfig 9
+- Mean with Lasso Ridge e Elastic
+- Droppando le feature in classe
+```markdown
+DEV ERROR ~ Stats over 50 random splits with 0.5 test
+> mean: 0.11027563036471154
+> variance: 1.4144146990481272e-05
+> stdev: 0.003760870509666781
+
+```

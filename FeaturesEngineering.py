@@ -6,6 +6,7 @@ import pandas as pd
 
 import fancyimpute as fi
 from fancyimpute import BiScaler, SoftImpute, IterativeImputer, KNN, NuclearNormMinimization, IterativeSVD
+from numpy.distutils.system_info import numarray_info
 from sklearn.preprocessing import RobustScaler
 
 from FeaturesFunctions import *
@@ -1203,16 +1204,45 @@ numeric_columns.append('SaleType')
 columns_to_ohe.append('SaleCondition')
 
 
+# %% class features remove : su kaggle peggiora.
+# to_drop = [
+#     'TotalBsmtSF',
+#     'GrLivArea',
+#     'MasVnrArea',
+#     'BsmtHalfBath',
+#     'GarageYrBlt',
+#     'OpenPorchSF',
+#     'PoolArea',
+#     '3SsnPorch',
+#     'MiscVal',
+#     'MoSold',
+#     'LowQualFinSF',
+#     'HalfBath',
+#     'FullBath',
+#     'EnclosedPorch'
+# ]
+# columns_to_drop.extend(to_drop)
+
+
 # %% REMOVE BAD FEATURES
 for x in columns_to_drop:
     assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
+
+numeric_columns = [x for x in numeric_columns if x not in set(columns_to_drop)]
+boolean_columns = [x for x in boolean_columns if x not in set(columns_to_drop)]
+columns_to_ohe = [x for x in columns_to_ohe if x not in set(columns_to_drop)]
+
+backup_df = complete_df.copy()
+
 complete_df.drop(columns=columns_to_drop, inplace=True)
+
 
 # %% ASSERTIONS
 assert len(columns_to_ohe) + len(numeric_columns) + (len(boolean_columns) ) == complete_df.shape[1], \
     "Number of features mismatch {} != {}".format(
 len(columns_to_ohe) + len(numeric_columns) + (len(boolean_columns) ) ,
 complete_df.shape[1])
+
 
 # %% PERFORM ONE HOT ENCODING
 for x in columns_to_ohe:
@@ -1234,140 +1264,62 @@ complete_df.drop(columns=columns_to_drop_to_avoid_overfit, inplace=True)
 
 # print(complete_df.info(verbose=True))
 
+
 # %% ~~~~~ FANCY IMPUTER ~~~~~
-# complete_df = RobustScaler().fit_transform(complete_df)
-# complete_df = fi.NuclearNormMinimization().fit_transform(complete_df)
-check_missing_values(complete_df)
-
-index = complete_df.index
-columns = complete_df.columns
-
-# complete_df = BiScaler().fit_transform(complete_df.values)
-# complete_df = SoftImpute().fit_transform(complete_df)
-# complete_df = KNN().fit_transform(complete_df)
-# complete_df = IterativeSVD().fit_transform(complete_df)
-# complete_df = BiScaler().fit_transform(complete_df.values)
-# complete_df = NuclearNormMinimization().fit_transform(complete_df)
-complete_df = KNN(k=10).fit_transform(complete_df)
-
-complete_df = pd.DataFrame(complete_df, index=index, columns = columns)
+complete_df = impute(complete_df)
 
 
 # ~~~~~ ADD NEW FEATURES ~~~~
 
 # %% TotalSF
 # We can build a new feature from those two and the basement info: the total area of the two floors + the basement
-complete_df['TotalSF'] = complete_df['1stFlrSF'] + complete_df['2ndFlrSF'] + complete_df['TotalBsmtSF']
+complete_df['TotalSF'] = backup_df['1stFlrSF'] + backup_df['2ndFlrSF'] + backup_df['TotalBsmtSF']
 numeric_columns.append('TotalSF')
 
 # %% Total home qual
-complete_df['Total_Home_Quality'] = complete_df['OverallQual'] + complete_df['OverallCond']
+complete_df['Total_Home_Quality'] = backup_df['OverallQual'] + backup_df['OverallCond']
 numeric_columns.append('Total_Home_Quality')
 
 # %% TotalArea
 area_cols = ['LotFrontage', 'LotArea', 'MasVnrArea', 'BsmtFinSF1', 'BsmtFinSF2', 'BsmtUnfSF',
              'TotalBsmtSF', '1stFlrSF', '2ndFlrSF', 'GrLivArea', 'GarageArea', 'WoodDeckSF',
              'OpenPorchSF', 'EnclosedPorch', '3SsnPorch', 'ScreenPorch', 'LowQualFinSF', 'PoolArea']
-complete_df['TotalArea'] = complete_df[area_cols].sum(axis=1)
+complete_df['TotalArea'] = backup_df[area_cols].sum(axis=1)
 numeric_columns.append('TotalArea')
 
 
 # %% Total_sqr_footage
-complete_df['Total_sqr_footage'] = (complete_df['BsmtFinSF1'] + complete_df['BsmtFinSF2'] +
-                                 complete_df['1stFlrSF'] + complete_df['2ndFlrSF'])
+complete_df['Total_sqr_footage'] = (backup_df['BsmtFinSF1'] + backup_df['BsmtFinSF2'] +
+                                 backup_df['1stFlrSF'] + backup_df['2ndFlrSF'])
 numeric_columns.append('Total_sqr_footage')
 
 # %% Total_Bathrooms
-complete_df['Total_Bathrooms'] = (complete_df['FullBath'] + (0.5*complete_df['HalfBath']) +
-                               complete_df['BsmtFullBath'] + (0.5*complete_df['BsmtHalfBath']))
+complete_df['Total_Bathrooms'] = (backup_df['FullBath'] + (0.5*backup_df['HalfBath']) +
+                               backup_df['BsmtFullBath'] + (0.5*backup_df['BsmtHalfBath']))
 numeric_columns.append('Total_Bathrooms')
 
 # %% Total_porch_sf
-complete_df['Total_porch_sf'] = (complete_df['OpenPorchSF'] + complete_df['3SsnPorch'] +
-                              complete_df['EnclosedPorch'] + complete_df['ScreenPorch'] +
-                             complete_df['WoodDeckSF'])
+complete_df['Total_porch_sf'] = (backup_df['OpenPorchSF'] + backup_df['3SsnPorch'] +
+                              backup_df['EnclosedPorch'] + backup_df['ScreenPorch'] +
+                             backup_df['WoodDeckSF'])
 numeric_columns.append('Total_porch_sf')
 
 
+# %% ~~~~~ FANCY IMPUTER ~~~~~
+complete_df = impute(complete_df)
+
+
 # %% Add logs
-def addlogs(res, ls):
-    m = res.shape[1]
-    for l in ls:
-        res = res.assign(newcol=pd.Series(np.log(1.01+res[l])).values)
-        res.columns.values[m] = l + '_log'
-        m += 1
-    return res
+complete_df = add_logs(complete_df)
 
-loglist = ['LotFrontage','LotArea','MasVnrArea','BsmtFinSF1','BsmtFinSF2','BsmtUnfSF',
-                 'TotalBsmtSF','1stFlrSF','2ndFlrSF','LowQualFinSF','GrLivArea',
-                 'BsmtFullBath','BsmtHalfBath','FullBath','HalfBath','BedroomAbvGr','KitchenAbvGr',
-                 'TotRmsAbvGrd','Fireplaces','GarageCars','GarageArea','WoodDeckSF','OpenPorchSF',
-                 'EnclosedPorch','3SsnPorch','ScreenPorch','PoolArea','YearRemodAdd','TotalSF',
-           # 'MiscVal',
-           ]
-
-complete_df = addlogs(complete_df, loglist)
 
 
 # %% Add Squared
-def addSquared(res, ls):
-    m = res.shape[1]
-    for l in ls:
-        res = res.assign(newcol=pd.Series(res[l]*res[l]).values)
-        res.columns.values[m] = l + '_sq'
-        m += 1
-    return res
-
-sqpredlist = ['YearRemodAdd', 'LotFrontage_log',
-              'TotalBsmtSF_log', '1stFlrSF_log', '2ndFlrSF_log', 'GrLivArea_log',
-              'GarageCars_log', 'GarageArea_log',
-              'OverallQual','ExterQual','BsmtQual','GarageQual','FireplaceQu','KitchenQual']
-complete_df = addSquared(complete_df, sqpredlist)
-
-
-
-
-
+complete_df = add_squares(complete_df)
 
 
 # %% ~~~~~ Resolve skewness ~~~~ TODO camuffa codice
-from scipy.stats import skew
-
-numeric_features = numeric_columns
-skew_features = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
-skews = pd.DataFrame({'skew': skew_features})
-
-print()
-print('--------- SKEW OF FEATURES ----------')
-print(skew_features)
-print()
-
-from scipy.special import boxcox1p
-from scipy.stats import boxcox_normmax
-
-high_skew = skew_features[skew_features > 0.5]
-high_skew = high_skew
-skew_index = high_skew.index
-
-for i in skew_index:
-    complete_df[i] = boxcox1p(complete_df[i], boxcox_normmax(complete_df[i] + 1))
-
-# Check it is adjusted
-skew_features2 = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
-skews2 = pd.DataFrame({'skew': skew_features2})
-print()
-print('--------- SKEW OF FEATURES AFTER NORMALIZATION ----------')
-print(skew_features2)
-print()
-
-
-
-
-
-# TODO We should remove discordant data (there can't be a single basement-feature with a 'no basement' meaning if at least another one is present
-# TODO We should remove discordant data (there can't be a single garage-feature with a 'no garage' meaning if at least another one is present
-
-
+complete_df = resolve_skewness(complete_df, numeric_columns)
 
 
 # %% Infos

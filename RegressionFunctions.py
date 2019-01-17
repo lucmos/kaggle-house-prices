@@ -17,6 +17,9 @@ alphas2 = [0.000051, 0.00009, 0.00021, 0.00029, 0.00041, 0.00051, 0.00059, 0.000
 e_alphas = [0.0001, 0.0002, 0.0003, 0.0004, 0.0005, 0.0006, 0.0007]
 e_l1ratio = [0.8, 0.85, 0.9, 0.95, 0.99, 1]
 
+def print_corss_score(predictor_fitted):
+    alphas = np.logspace(-3, -1, 30)
+    # todo completa!
 
 def fit_predict(x_train, y_train, x_test):
     predicor1 = make_pipeline(RobustScaler(),
