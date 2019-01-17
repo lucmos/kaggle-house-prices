@@ -453,7 +453,7 @@ numeric_columns.extend(['YearRemodAdd', 'YrSold', 'YearBuilt'])  # TODO someone 
 #        Mansard  Mansard
 #        Shed Shed
 #
-columns_to_ohe.append('RoofStyle') # TODO Suggested to drop roofs
+columns_to_drop.append('RoofStyle') # TODO Suggested to drop roofs
 # ok!
 
 
@@ -469,11 +469,11 @@ columns_to_ohe.append('RoofStyle') # TODO Suggested to drop roofs
 #        WdShngl  Wood Shingles
 #
 # -> Some values not present in test, remove (after the OneHotEncoding) the column_value {'Roll', 'Metal', 'Membran'}
-columns_to_drop_to_avoid_overfit.extend(["RoofMatl_{}".format(x) for x in ["Roll", "Metal", "Membran"]])
+# columns_to_drop_to_avoid_overfit.extend(["RoofMatl_{}".format(x) for x in ["Roll", "Metal", "Membran"]])
 
 complete_df['RoofMatlEqualGtl'] = (complete_df['RoofMatl'] == 'CompShg') * 1
 boolean_columns.append('RoofMatlEqualGtl')
-columns_to_ohe.append('RoofMatl')
+columns_to_drop.append('RoofMatl')
 # ok!
 
 
@@ -1203,6 +1203,56 @@ numeric_columns.append('SaleType')
 columns_to_ohe.append('SaleCondition')
 
 
+# %% REMOVE BAD FEATURES
+for x in columns_to_drop:
+    assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
+complete_df.drop(columns=columns_to_drop, inplace=True)
+
+# %% ASSERTIONS
+assert len(columns_to_ohe) + len(numeric_columns) + (len(boolean_columns) ) == complete_df.shape[1], \
+    "Number of features mismatch {} != {}".format(
+len(columns_to_ohe) + len(numeric_columns) + (len(boolean_columns) ) ,
+complete_df.shape[1])
+
+# %% PERFORM ONE HOT ENCODING
+for x in columns_to_ohe:
+    assert x in complete_df
+    complete_df[x] = complete_df[x].astype(str)
+
+complete_df = pd.get_dummies(complete_df, columns=columns_to_ohe)
+
+# ~~~~~ REMOVE FEATURES TO AVOID OVERFIT~~~
+# Dropping bad features
+out = ['MSSubClass_150',
+       # "BsmtQual_Po", # TODO: se non usiamo l'ordinamento va messa!
+        'MSZoning_C (all)']
+columns_to_drop_to_avoid_overfit.extend(out)
+
+for x in columns_to_drop_to_avoid_overfit:
+    assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
+complete_df.drop(columns=columns_to_drop_to_avoid_overfit, inplace=True)
+
+# print(complete_df.info(verbose=True))
+
+# %% ~~~~~ FANCY IMPUTER ~~~~~
+# complete_df = RobustScaler().fit_transform(complete_df)
+# complete_df = fi.NuclearNormMinimization().fit_transform(complete_df)
+check_missing_values(complete_df)
+
+index = complete_df.index
+columns = complete_df.columns
+
+# complete_df = BiScaler().fit_transform(complete_df.values)
+# complete_df = SoftImpute().fit_transform(complete_df)
+# complete_df = KNN().fit_transform(complete_df)
+# complete_df = IterativeSVD().fit_transform(complete_df)
+# complete_df = BiScaler().fit_transform(complete_df.values)
+# complete_df = NuclearNormMinimization().fit_transform(complete_df)
+complete_df = KNN(k=10).fit_transform(complete_df)
+
+complete_df = pd.DataFrame(complete_df, index=index, columns = columns)
+
+
 # ~~~~~ ADD NEW FEATURES ~~~~
 
 # %% TotalSF
@@ -1275,94 +1325,15 @@ sqpredlist = ['YearRemodAdd', 'LotFrontage_log',
 complete_df = addSquared(complete_df, sqpredlist)
 
 
-# %% REMOVE BAD FEATURES
-for x in columns_to_drop:
-    assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
-complete_df.drop(columns=columns_to_drop, inplace=True)
-
-
-# %% ASSERTIONS
-assert len(columns_to_ohe) + len(numeric_columns) + (len(boolean_columns) + len(sqpredlist) + len(loglist)) == complete_df.shape[1], "Number of features mismatch"
-
-# %% PERFORM ONE HOT ENCODING
-for x in columns_to_ohe:
-    assert x in complete_df
-    complete_df[x] = complete_df[x].astype(str)
-
-complete_df = pd.get_dummies(complete_df, columns=columns_to_ohe)
-
-# print(complete_df.info(verbose=True))
-
-# %% ~~~~~ FANCY IMPUTER ~~~~~
-# complete_df = RobustScaler().fit_transform(complete_df)
-# complete_df = fi.NuclearNormMinimization().fit_transform(complete_df)
-check_missing_values(complete_df)
-
-index = complete_df.index
-columns = complete_df.columns
-
-# complete_df = BiScaler().fit_transform(complete_df.values)
-# complete_df = SoftImpute().fit_transform(complete_df)
-# complete_df = KNN().fit_transform(complete_df)
-# complete_df = IterativeSVD().fit_transform(complete_df)
-# complete_df = BiScaler().fit_transform(complete_df.values)
-complete_df = KNN(k=10).fit_transform(complete_df)
-# complete_df = NuclearNormMinimization().fit_transform(complete_df)
-
-complete_df = pd.DataFrame(complete_df, index=index, columns = columns)
-
-# print(complete_df.head())
-# assert False
 
 
 
 
 
-
-
-
-# %% ~~~~~ Resolve skewness ~~~~ TODO camuffa codice
-from scipy.stats import skew
-
-# numeric_features = ["MiscVal",
-#                     "PoolArea",
-#                     "LotArea",
-#                     "LowQualFinSF",
-#                     "3SsnPorch",
-#                     "KitchenAbvGr",
-#                     "BsmtFinSF2",
-#                     "EnclosedPorch",
-#                     "ScreenPorch",
-#                     "BsmtHalfBath",
-#                     "MasVnrArea",
-#                     "OpenPorchSF",
-#                     "WoodDeckSF",
-#                     "1stFlrSF",
-#                     "LotFrontage",
-#                     "GrLivArea",
-#                     "BsmtFinSF1",
-#                     "BsmtUnfSF",
-#                     "2ndFlrSF",
-#                     "TotRmsAbvGrd",
-#                     "Fireplaces",
-#                     "HalfBath",
-#                     "TotalBsmtSF",
-#                     "BsmtFullBath",
-#                     "OverallCond",
-#                     "BedroomAbvGr",
-#                     "GarageArea",
-#                     # "MoSold", # TODO è stato messo a string
-#                     "OverallQual",
-#                     "FullBath",
-#                     # "YrSold", # TODO è stato messo a string
-#                     "GarageCars",
-#                     "YearRemodAdd",
-#                     "YearBuilt",
-#                     "GarageYrBlt"]
-numeric_features = numeric_columns
-# for y in numeric_features:
-#     print(complete_df[y].dtype)
-
+# # %% ~~~~~ Resolve skewness ~~~~ TODO camuffa codice
+# from scipy.stats import skew
+#
+# numeric_features = numeric_columns
 # skew_features = complete_df[numeric_features].apply(lambda x: skew(x)).sort_values(ascending=False)
 # skews = pd.DataFrame({'skew': skew_features})
 #
@@ -1391,16 +1362,6 @@ numeric_features = numeric_columns
 
 
 
-# %% Dropping bad features
-out = ['MSSubClass_150',
-       # "BsmtQual_Po", # TODO: se non usiamo l'ordinamento va messa!
-        'MSZoning_C (all)']
-columns_to_drop_to_avoid_overfit.extend(out)
-
-# ~~~~~ REMOVE FEATURES TO AVOID OVERFIT~~~
-for x in columns_to_drop_to_avoid_overfit:
-    assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
-complete_df.drop(columns=columns_to_drop_to_avoid_overfit, inplace=True)
 
 
 # TODO We should remove discordant data (there can't be a single basement-feature with a 'no basement' meaning if at least another one is present
