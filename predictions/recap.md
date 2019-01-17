@@ -113,8 +113,43 @@ DEV ERROR ~ Stats over 50 random splits with 0.5 test
 ---
 k = 10 seems to be the best. I'm keeping it.
 So the new baseline is: Config4
+
+CHanged some stuff in features enginnering
+like dropped something, skewd something, etc.
+Score (by eye) more or less the same, now regression.
 ---
 
-# Config 5
--baseline
--KKN(k = 10, normalizer=Biscaler())
+# Config 6
+- LassoCV
+kaggle:0.11637
+```markdown
+DEV ERROR ~ Stats over 50 random splits with 0.5 test
+> mean: 0.11035489457257136
+> variance: 1.4245850502199812e-05
+> stdev: 0.003774367563208413
+```
+
+# Config 7
+- ElasticNet
+kaggle: 0.11632
+```markdown
+DEV ERROR ~ Stats over 50 random splits with 0.5 test
+> mean: 0.11008167982447647
+> variance: 1.8893235030635165e-05
+> stdev: 0.004346634908827191
+
+```
+
+# Config 7
+- XGBoost
+```markdown
+DEV ERROR ~ Stats over 50 random splits with 0.5 test
+> mean: 0.11637396240252552
+> variance: 1.9177524118993793e-05
+> stdev: 0.0043792150117337005
+
+```
+
+# COnfig 8
+- Mean with Lasso Ridge e Elastic
+kaggle:0.11604
