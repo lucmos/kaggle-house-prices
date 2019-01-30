@@ -19,6 +19,8 @@ columns_to_drop_to_avoid_overfit = []  # TODO droppa DOPO ohe
 columns_to_ohe = []
 numeric_columns = []
 boolean_columns = []
+drop_by_correlation = []
+drop_stupido = []
 
 # %% ~~~~~ COMMON MAPPINGS ~~~~~
 qualities_dict = {NONE_VALUE: 0, 'Po': 1, 'Fa': 2, 'TA': 3, 'Gd': 4, 'Ex': 5}
@@ -130,7 +132,8 @@ columns_to_drop.append('Street')
 # Counter({nan: 2718, 'Grvl': 120, 'Pave': 78})
 complete_df['NoAlley'] = (complete_df['Alley'].notna()) * 1
 boolean_columns.append('NoAlley')
-columns_to_drop.append('Alley')  # TODO: Shouldn't we drop the original one?
+columns_to_ohe.append('Alley')
+drop_stupido.append('Alley')  # TODO: Shouldn't we drop the original one?
 # ok!
 
 
@@ -144,7 +147,8 @@ columns_to_drop.append('Alley')  # TODO: Shouldn't we drop the original one?
 # -> Counter({'Reg': 1859, 'IR1': 966, 'IR2': 76, 'IR3': 15})
 # -> So we can just transform this feature into a boolean one: IsLotShapeRegular
 complete_df['IsLotShapeRegular'] = (complete_df['LotShape'] == 'Reg') * 1
-columns_to_drop.append('LotShape')  # TODO: Shouldn't we drop the original one?
+columns_to_ohe.append('LotShape')
+drop_stupido.append('LotShape')
 boolean_columns.append('IsLotShapeRegular')
 # ok!
 
@@ -159,7 +163,8 @@ boolean_columns.append('IsLotShapeRegular')
 # -> Counter({'Lvl': 2622, 'HLS': 120, 'Bnk': 115, 'Low': 59})
 # -> So we can just transform this feature into a boolean one: IsContourLandLevel
 complete_df['IsContourLandLevel'] = (complete_df['LandContour'] == 'Lvl') * 1
-columns_to_drop.append('LandContour')  # TODO: Shouldn't we drop the original one?
+columns_to_ohe.append('LandContour')
+drop_stupido.append('LandContour')  # TODO: Shouldn't we drop the original one?
 boolean_columns.append('IsContourLandLevel')
 # ok!
 
@@ -185,7 +190,6 @@ columns_to_drop.append('Utilities')
 #        FR2  Frontage on 2 sides of property
 #        FR3  Frontage on 3 sides of property
 # Counter({'Inside': 2132, 'Corner': 510, 'CulDSac': 175, 'FR2': 85, 'FR3': 14})
-# TODO: Should we ADD a boolean feature like "IsLotConfigInside"?
 complete_df['IsLotConfigInside'] = (complete_df['LotConfig'] == 'Inside') * 1
 boolean_columns.append('IsLotConfigInside')
 columns_to_ohe.append('LotConfig')
@@ -202,7 +206,8 @@ columns_to_ohe.append('LotConfig')
 # -> So we can just transform this feature into a boolean one: IsSlopeGentle
 complete_df['IsSlopeGentle'] = (complete_df['LandSlope'] == 'Gtl') * 1
 boolean_columns.append('IsSlopeGentle')
-columns_to_drop.append('LandSlope')  # TODO: Shouldn't we drop the original one?
+columns_to_ohe.append('LandSlope')
+drop_stupido.append('LandSlope')
 # ok!
 
 
@@ -293,8 +298,9 @@ def conditions_merge(row):
 
 complete_df['Condition'] = complete_df.apply(conditions_merge, axis=1)
 columns_to_ohe.append('Condition')
-columns_to_ohe.append('Condition1')
-columns_to_ohe.append('Condition2')
+columns_to_ohe.extend(['Condition1', 'Condition2'])
+drop_stupido.append('Condition1')
+drop_stupido.append('Condition2')
 # ok!
 
 
@@ -405,7 +411,7 @@ complete_df['OverallCondSimplified'] = complete_df.apply(overall_cond_simplify, 
 numeric_columns.append('OverallCondSimplified')
 numeric_columns.append('OverallCond')
 
-columns_to_drop.extend(['OverallQual', 'OverallCond'])  # TODO: DROP
+drop_stupido.extend(['OverallQual', 'OverallCond'])
 complete_df['OverallQualCond'] = (complete_df['OverallQual'] + complete_df['OverallCond']) / 2
 numeric_columns.append('OverallQualCond')
 
@@ -429,9 +435,12 @@ numeric_columns.append('YearBuiltBinned')
 # -> Now, we don't care about the exact remodel date, we just want to know if it has been remodeled:
 complete_df['IsRemodeled'] = (complete_df['YearRemodAdd'] != complete_df['YearBuilt']) * 1
 boolean_columns.append('IsRemodeled')
+drop_by_correlation.append('IsRemodeled')
 
 # -> Is the remodel a very recent one (same year of the sale)?
 complete_df['IsRemodelRecent'] = (complete_df['YearRemodAdd'] == complete_df['YrSold']) * 1
+drop_by_correlation.append('IsRemodelRecent')
+
 boolean_columns.append('IsRemodelRecent')
 
 complete_df['YearsSinceRemodel'] = complete_df['YrSold'].astype(int) - complete_df['YearRemodAdd'].astype(int)
@@ -441,8 +450,8 @@ numeric_columns.append('YearsSinceRemodel')
 complete_df['IsNewHouse'] = (complete_df['YearBuilt'] == complete_df['YrSold']) * 1
 boolean_columns.append('IsNewHouse')
 
-columns_to_drop.extend(['YearRemodAdd', 'YrSold', 'YearBuilt'])  # TODO someone threats them as categorical
-# TODO: DROP THEM!
+numeric_columns.extend(['YearRemodAdd', 'YrSold', 'YearBuilt'])  # TODO someone threats them as categorical
+drop_stupido.extend(['YearRemodAdd', 'YrSold', 'YearBuilt'])
 # ok!
 
 
@@ -600,8 +609,9 @@ numeric_columns.append('MasVnrType_int')
 # complete_df['ExterQual'] = complete_df['ExterQual'].map(qualities_dict).astype(int)
 complete_df = ints_encoding(complete_df, 'ExterQual', qualities_dict)
 complete_df = ints_encoding(complete_df, 'ExterCond', qualities_dict)
+numeric_columns.extend(['ExterQual', 'ExterCond'])
 
-columns_to_drop.extend(['ExterQual', 'ExterCond'])  # TODO: Drop
+drop_stupido.extend(['ExterQual', 'ExterCond'])  # TODO: Drop
 complete_df['ExterQualCond'] = (complete_df['ExterQual'] + complete_df['ExterCond']) / 2
 # ok!
 
@@ -621,7 +631,8 @@ complete_df['Foundation_int'] = complete_df['Foundation']
 complete_df = ints_encoding(complete_df, 'Foundation_int',
                             {'BrkTil': 5, 'CBlock': 4, 'PConc': 3, 'Slab': 2, 'Stone': 1, 'Wood': 0})
 numeric_columns.append('Foundation_int')
-columns_to_ohe.append('Foundation')
+columns_to_drop.append('Foundation')
+drop_by_correlation.append('Foundation')
 # ok!
 
 
@@ -666,9 +677,10 @@ complete_df = ints_encoding(complete_df, 'BsmtCond', qualities_dict)
 numeric_columns.append('BsmtCond')
 # ok!
 
-columns_to_drop.extend(['BsmtQual', 'BsmtCond'])  # TODO Drop
+drop_stupido.extend(['BsmtQual', 'BsmtCond'])  # TODO Drop
 # Union of Cond/Qual features
 complete_df['BsmtQualCond'] = (complete_df['BsmtQual'] + complete_df['BsmtCond']) / 2
+numeric_columns.append('BsmtQualCond')
 
 # %% BsmtExposure: Refers to walkout or garden level walls
 #
@@ -679,7 +691,7 @@ complete_df['BsmtQualCond'] = (complete_df['BsmtQual'] + complete_df['BsmtCond']
 #        NA   No Basement
 #
 # -> TODO Gestisci differenza fra No e NA (?)
-complete_df = ints_encoding(complete_df, 'BsmtExposure', {NONE_VALUE: 0, 'No': 1, 'Mn': 2, 'Av': 3, 'Gd': 4})
+complete_df = ints_encoding(complete_df, 'BsmtExposure', {NONE_VALUE: 0, 'No': 0, 'Mn': 2, 'Av': 3, 'Gd': 4})
 numeric_columns.append('BsmtExposure')
 # ok!
 
@@ -694,19 +706,22 @@ numeric_columns.append('BsmtExposure')
 #        Unf  Unfinshed
 #        NA   No Basement
 #
+
+drop_by_correlation.append('BsmtFinType1')
 columns_to_ohe.append('BsmtFinType1')
 
 complete_df['BsmtFinType1_int'] = complete_df['BsmtFinType1']
 complete_df = ints_encoding(complete_df, 'BsmtFinType1_int', fin_qualities_dict)
 numeric_columns.append('BsmtFinType1_int')
 
-complete_df['BsmtFinType1_Unf'] = 1 * (complete_df['BsmtFinType1'] == 'Unf')
-boolean_columns.append('BsmtFinType1_Unf')
+complete_df['IsBsmtFinType1Unf'] = 1 * (complete_df['BsmtFinType1'] == 'Unf')
+boolean_columns.append('IsBsmtFinType1Unf')
 # ok!
 
 
 # %% BsmtFinSF1: Type 1 finished square feet
 #
+drop_by_correlation.append('BsmtFinSF1')
 numeric_columns.append('BsmtFinSF1')
 # ok!
 
@@ -721,8 +736,16 @@ numeric_columns.append('BsmtFinSF1')
 #        Unf  Unfinshed
 #        NA   No Basement
 #
-complete_df = ints_encoding(complete_df, 'BsmtFinType2', fin_qualities_dict)
-numeric_columns.append('BsmtFinType2')
+
+drop_by_correlation.append('BsmtFinType2')
+columns_to_ohe.append('BsmtFinType2')
+
+complete_df['BsmtFinType2_int'] = complete_df['BsmtFinType2']
+complete_df = ints_encoding(complete_df, 'BsmtFinType2_int', fin_qualities_dict)
+numeric_columns.append('BsmtFinType2_int')
+
+complete_df['IsBsmtFinType2Unf'] = 1 * (complete_df['BsmtFinType2'] == 'Unf')
+boolean_columns.append('IsBsmtFinType2Unf')
 # ok!
 
 
@@ -840,6 +863,9 @@ numeric_columns.append('BsmtFullBath')
 numeric_columns.append('BsmtHalfBath')
 # ok!
 
+drop_by_correlation.extend(['BsmtFullBath', 'BsmtHalfBath'])
+complete_df['BsmtBaths'] = complete_df['BsmtFullBath'] + complete_df['BsmtHalfBath'] / 2
+numeric_columns.append('BsmtBaths')
 
 # %% FullBath: Full bathrooms above grade
 #
@@ -851,7 +877,9 @@ numeric_columns.append('FullBath')
 #
 numeric_columns.append('HalfBath')
 # ok!
-
+drop_by_correlation.extend(['HalfBath', 'FullBath'])
+complete_df['Baths'] = complete_df['FullBath'] + complete_df['HalfBath'] / 2
+numeric_columns.append('Baths')
 
 # %% BedroomAbvGr: Bedrooms above grade (does NOT include basement bedrooms) # todo wrong name in data description...
 #
@@ -926,7 +954,8 @@ numeric_columns.append('Functional_int')
 #        NA   No Fireplace
 # -> Counter({nan: 1420, 'Gd': 741, 'TA': 592, 'Fa': 74, 'Po': 46, 'Ex': 43})
 # -> First, let's simplify the 'Fireplaces' feature into a boolean one
-columns_to_drop.append('Fireplaces')  # TODO: DROOOOOOOOP
+drop_stupido.append('Fireplaces')  # TODO: DROOOOOOOOP
+numeric_columns.append('Fireplaces')
 
 complete_df['FireplaceIsPresent'] = (complete_df['Fireplaces'] > 0) * 1
 boolean_columns.append('FireplaceIsPresent')
@@ -1031,7 +1060,7 @@ complete_df = ints_encoding(complete_df, 'GarageCond', qualities_dict)
 numeric_columns.append('GarageCond')
 # ok!
 
-columns_to_drop.extend(['GarageQual', 'GarageCond'])  # TODO: Drop
+drop_stupido.extend(['GarageQual', 'GarageCond'])  # TODO: Drop
 # Union of Cond/Qual features
 complete_df['GarageQualCond'] = (complete_df['GarageCond'] + complete_df['GarageQual']) / 2
 
@@ -1046,15 +1075,16 @@ complete_df['GarageQualCond'] = (complete_df['GarageCond'] + complete_df['Garage
 complete_df['HasPavedDrive'] = (complete_df['PavedDrive'] == 'Y') * 1
 boolean_columns.append('HasPavedDrive')
 
-columns_to_drop.append('PavedDrive')  # TODO: Correlation drop
+drop_by_correlation.append('PavedDrive')
 
-# columns_to_drop.append('PavedDrive')
+columns_to_ohe.append('PavedDrive')
 # ok!
 
 
 # %% WoodDeckSF: Wood deck area in square feet
 #
-columns_to_drop.append('WoodDeckSF')  # TODO: Correlation drop
+drop_by_correlation.append('WoodDeckSF')
+numeric_columns.append('WoodDeckSF')
 
 complete_df['HasWoodDeck'] = (complete_df['WoodDeckSF'] == 0) * 1
 boolean_columns.append('HasWoodDeck')
@@ -1063,7 +1093,8 @@ boolean_columns.append('HasWoodDeck')
 
 # %% OpenPorchSF: Open porch area in square feet
 #
-columns_to_drop.append('OpenPorchSF')  # TODO: Correlation drop
+drop_by_correlation.append('OpenPorchSF')
+numeric_columns.append('OpenPorchSF')
 
 complete_df['HasOpenPorch'] = (complete_df['OpenPorchSF'] == 0) * 1
 boolean_columns.append('HasOpenPorch')
@@ -1072,7 +1103,8 @@ boolean_columns.append('HasOpenPorch')
 
 # %% EnclosedPorch: Enclosed porch area in square feet
 #
-columns_to_drop.append('EnclosedPorch')  # TODO: Correlation drop
+drop_by_correlation.append('EnclosedPorch')
+numeric_columns.append('EnclosedPorch')
 
 complete_df['HasEnclosedPorch'] = (complete_df['EnclosedPorch'] == 0) * 1
 boolean_columns.append('HasEnclosedPorch')
@@ -1081,7 +1113,8 @@ boolean_columns.append('HasEnclosedPorch')
 
 # %% 3SsnPorch: Three season porch area in square feet
 #
-columns_to_drop.append('3SsnPorch')  # TODO: Correlation drop
+drop_by_correlation.append('3SsnPorch')
+numeric_columns.append('3SsnPorch')
 
 complete_df['Has3SsnPorch'] = (complete_df['3SsnPorch'] == 0) * 1
 boolean_columns.append('Has3SsnPorch')
@@ -1090,7 +1123,8 @@ boolean_columns.append('Has3SsnPorch')
 
 # %% ScreenPorch: Screen porch area in square feet
 #
-columns_to_drop.append('ScreenPorch')  # TODO: Correlation drop
+drop_by_correlation.append('ScreenPorch')
+numeric_columns.append('ScreenPorch')
 
 complete_df['HasScreenPorch'] = (complete_df['ScreenPorch'] == 0) * 1
 boolean_columns.append('HasScreenPorch')
@@ -1116,9 +1150,13 @@ boolean_columns.append('HasScreenPorch')
 # complete_df.loc[2501, 'PoolQC'] = 'Gd'
 # complete_df.loc[2597, 'PoolQC'] = 'Fa'
 # complete_df['PoolQC'] = complete_df['PoolQC']
-columns_to_drop.append(
-    'PoolArea')  # TODO: Correlation drop (because a big pool is an outlier given that distribution!!!!)
-columns_to_drop.append('PoolQC')  # TODO: Correlation drop
+drop_by_correlation.append('PoolArea')
+drop_by_correlation.append('PoolQC')
+
+numeric_columns.append('PoolArea')
+numeric_columns.append('PoolQC')
+
+complete_df = ints_encoding(complete_df, 'PoolQC', {NONE_VALUE: 0, 'Fa': 1, 'TA': 2, 'Gd': 3, 'Ex': 4})
 
 complete_df['PoolIsPresent'] = (complete_df['PoolArea'] > 0) * 1
 boolean_columns.append('PoolIsPresent')
@@ -1158,8 +1196,8 @@ numeric_columns.append('Fence')
 # -> MiscVal: $Value of miscellaneous feature
 # -> Given this distribution, we can assume that the only useful info in this feature is the presence of a shed.
 # -> Let's create a boolean feature representing that keeping in mind the value of MiscVal that could be 0 (no shed!).
-columns_to_ohe.append('MiscFeature')
-columns_to_ohe.append('MiscVal')
+columns_to_drop.append('MiscFeature')
+columns_to_drop.append('MiscVal')
 
 
 def has_shed(row):
@@ -1227,6 +1265,8 @@ columns_to_ohe.append('SaleCondition')
 # ]
 # columns_to_drop.extend(to_drop)
 
+# columns_to_drop.extend(drop_by_correlation)  # TODO !
+
 # %% REMOVE BAD FEATURES
 for x in columns_to_drop:
     assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
@@ -1243,8 +1283,13 @@ complete_df.drop(columns=columns_to_drop, inplace=True)
 touched_features = set(train_df.keys())
 touched_features = touched_features - set(columns_to_ohe).union(numeric_columns).union(boolean_columns).union(
     columns_to_drop)
+
 assert len(touched_features) == 0, \
     "There are features not touched, NO BUONO! {}".format(touched_features)
+
+assert len(set(columns_to_ohe).union(numeric_columns).union(boolean_columns) - set(complete_df.keys())) == 0, \
+    "These are features declared in the lists but not present in the complete_df, NO BUONO! {}" \
+        .format(set(columns_to_ohe).union(numeric_columns).union(boolean_columns) - set(complete_df.keys()))
 
 compute_correlation(complete_df)
 

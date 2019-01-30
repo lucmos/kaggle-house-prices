@@ -50,7 +50,7 @@ complete_df = pd.concat([train_df, test_df])
 assert complete_df.shape[0] == train_obs + test_obs
 qualities_dict = {'None': 0, "Po": 1, "Fa": 2, "TA": 3, "Gd": 4, "Ex": 5}
 
-feature = 'HeatingQC'
+feature = 'HalfBath'
 
 nan_mask = complete_df.isnull().any()
 nan_columns = nan_mask[nan_mask]
@@ -61,11 +61,12 @@ print('Number of NaN in feature: {}'.format(complete_df[feature].isna().sum()))
 print(Counter(complete_df[feature]))
 print('Values missing in the training set: {}'.format(set(train_df[feature]).difference(set(test_df[feature]))))
 
-for i, row in complete_df[['BsmtQual', 'BsmtCond']].iterrows():
-    types = {row['BsmtQual'], row['BsmtCond']}
-    types.discard('TA')
-    if len(types) == 2:
-        print(types)
+# for i, row in complete_df[['BsmtQual', 'BsmtCond']].iterrows():
+#     types = {row['BsmtQual'], row['BsmtCond']}
+#     types.discard('TA')
+#     if len(types) == 2:
+#         print(types)
 
 # for x in Counter(complete_df[feature]):
 #     print(x)
+#Counter({2: 1529, 1: 1308, 3: 63, 0: 12, 4: 4})
