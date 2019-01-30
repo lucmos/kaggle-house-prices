@@ -1,12 +1,10 @@
 from pathlib import Path
 
-import pandas as pd
 from sklearn.metrics import mean_squared_log_error
 from sklearn.model_selection import train_test_split
 
 from FeaturesEngineering import get_engineered_train_test
-from RegressionFunctions import  *
-
+from RegressionFunctions import *
 from constants import *
 
 # %% Prepare data

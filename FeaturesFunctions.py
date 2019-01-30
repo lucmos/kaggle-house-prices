@@ -1,7 +1,10 @@
 from collections import Counter
+from pprint import pprint
 
 import pandas as pd
 import numpy as np
+import seaborn as sns
+from matplotlib import pyplot as plt
 from fancyimpute import KNN
 
 
@@ -83,7 +86,7 @@ def add_squares(complete_df):
     def addSquared(res, ls):
         m = res.shape[1]
         for l in ls:
-            res = res.assign(newcol=pd.Series(res[l]*res[l]).values)
+            res = res.assign(newcol=pd.Series(res[l] * res[l]).values)
             res.columns.values[m] = l + '_sq'
             m += 1
         return res
@@ -91,10 +94,10 @@ def add_squares(complete_df):
     sqpredlist = ['YearRemodAdd', 'LotFrontage_log',
                   'TotalBsmtSF_log', '1stFlrSF_log', '2ndFlrSF_log', 'GrLivArea_log',
                   'GarageCars_log', 'GarageArea_log',
-                  'OverallQual','ExterQual','BsmtQual','GarageQual','FireplaceQu','KitchenQual']
+                  'OverallQual', 'ExterQual', 'BsmtQual', 'GarageQual', 'FireplaceQu', 'KitchenQual']
     sqpredlist = [x for x in sqpredlist if x in complete_df]
     complete_df = addSquared(complete_df, sqpredlist)
-    return  complete_df
+    return complete_df
 
 
 def resolve_skewness(complete_df, numeric_features):
@@ -127,3 +130,67 @@ def resolve_skewness(complete_df, numeric_features):
     print(skew_features2)
     print()
     return complete_df
+
+
+def show_correlation(df):
+    sns.set(style="white")
+
+    corr = df.corr()
+
+    # Generate a mask for the upper triangle
+    mask = np.zeros_like(corr, dtype=np.bool)
+    mask[np.triu_indices_from(mask)] = True
+
+    # Set up the matplotlib figure
+    f, ax = plt.subplots(figsize=(11, 9))
+
+    # Generate a custom diverging colormap
+    cmap = [(0, 1, 0, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1),
+            (0, 0, 0, 1)]
+
+    # Draw the heatmap with the mask and correct aspect ratio
+    sns.heatmap(corr, mask=mask, cmap=cmap, vmax=1, vmin=-1, center=0,
+                square=True, linewidths=.1, linecolor="gray", cbar_kws={"shrink": .5})
+
+    plt.show()
+
+
+def compute_correlation(df):
+    # show_correlation(df)
+
+    # %% Features correlation search & removal (excluding NaN/null values)
+    CORRELATION = 0.75
+    # Correlation map to see how features are correlated with SalePrice (ignori
+    corrmat = df.corr().values
+
+    condlist = [corrmat > CORRELATION, corrmat < -CORRELATION]
+    choicelist = [True, True]
+
+    mask = np.select(condlist, choicelist, default=False)
+    np.fill_diagonal(mask, False)
+
+    l = []
+    for row_index, row in enumerate(mask):
+        for col_index, cell in enumerate(row):
+            if cell:
+                l.append((corrmat[row_index][col_index], tuple(sorted([df.columns[row_index], df.columns[col_index]]))))
+
+    l = list(set(l))
+    l = sorted(l, key=lambda x: abs(x[0]), reverse=True)
+    pprint(l)
+    return
+
+    return
+    print('Shape before removal: {}'.format(df.shape))
+    removed = []
+    while any(corrmat.any()):
+        for col in corrmat.keys():
+            if corrmat[col].any():
+                complete_df.drop(columns=[col], inplace=True)
+                removed.append(col)
+                break
+        corrmat = complete_df.corr()
+        corrmat = corrmat > CORRELATION
+        np.fill_diagonal(corrmat.values, False)
+    print('Shape after removal: {}'.format(complete_df.shape))
+    print('Removed columns: {}'.format(removed))
