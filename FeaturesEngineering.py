@@ -864,8 +864,8 @@ numeric_columns.append('BsmtHalfBath')
 # ok!
 
 drop_by_correlation.extend(['BsmtFullBath', 'BsmtHalfBath'])
-complete_df['BsmtBaths'] = complete_df['BsmtFullBath'] + complete_df['BsmtHalfBath'] / 2
-numeric_columns.append('BsmtBaths')
+# complete_df['BsmtBaths'] = complete_df['BsmtFullBath'] + complete_df['BsmtHalfBath'] / 2
+# numeric_columns.append('BsmtBaths') # TODO
 
 # %% FullBath: Full bathrooms above grade
 #
@@ -878,8 +878,8 @@ numeric_columns.append('FullBath')
 numeric_columns.append('HalfBath')
 # ok!
 drop_by_correlation.extend(['HalfBath', 'FullBath'])
-complete_df['Baths'] = complete_df['FullBath'] + complete_df['HalfBath'] / 2
-numeric_columns.append('Baths')
+# complete_df['Baths'] = complete_df['FullBath'] + complete_df['HalfBath'] / 2
+# numeric_columns.append('Baths') TODO
 
 # %% BedroomAbvGr: Bedrooms above grade (does NOT include basement bedrooms) # todo wrong name in data description...
 #
@@ -1196,8 +1196,9 @@ numeric_columns.append('Fence')
 # -> MiscVal: $Value of miscellaneous feature
 # -> Given this distribution, we can assume that the only useful info in this feature is the presence of a shed.
 # -> Let's create a boolean feature representing that keeping in mind the value of MiscVal that could be 0 (no shed!).
-columns_to_drop.append('MiscFeature')
-columns_to_drop.append('MiscVal')
+drop_stupido.append('MiscFeature')
+drop_stupido.append('MiscVal')
+columns_to_ohe.extend(['MiscFeature', 'MiscVal'])
 
 
 def has_shed(row):
