@@ -24,33 +24,25 @@ def print_corss_score(predictor_fitted):
 
 
 def fit_predict(x_train, y_train, x_test):
-    predicor1 = make_pipeline(RobustScaler(),
-                              RidgeCV(alphas=alphas_alt, cv=kfolds))
-    predicor2 = make_pipeline(RobustScaler(),
-                              LassoCV(max_iter=1e7, alphas=alphas2,
-                                      random_state=42, cv=kfolds, n_jobs=3))
-    predicor3 = make_pipeline(RobustScaler(),
-                              ElasticNetCV(max_iter=1e7, alphas=e_alphas,
-                                           cv=kfolds, l1_ratio=e_l1ratio,
-                                           n_jobs=3))
+    predictors = [(make_pipeline(RobustScaler(), RidgeCV(alphas=alphas_alt, cv=kfolds)),
+                   1),
+                  (make_pipeline(RobustScaler(),
+                                LassoCV(max_iter=1e7, alphas=alphas2, random_state=42, cv=kfolds, n_jobs=3)),
+                   1),
+                  (make_pipeline(RobustScaler(),
+                                ElasticNetCV(max_iter=1e7, alphas=e_alphas, cv=kfolds, l1_ratio=e_l1ratio, n_jobs=3)),
+                   1)]
 
-    predicor1.fit(x_train, y_train)
-    predicor2.fit(x_train, y_train)
-    predicor3.fit(x_train, y_train)
+    for predictor, _ in predictors:
+        predictor.fit(x_train, y_train)
 
-    predictions1 = predicor1.predict(x_test)
-    predictions2 = predicor2.predict(x_test)
-    predictions3 = predicor3.predict(x_test)
+    predictions = [predictor.predict(x_test) for predictor, _ in predictors]
+    weights = [w for _, w in predictors]
 
-    predictions1 = np.expm1(predictions1)
-    predictions1 = normalize_predictions(predictions1)
+    predictions = np.average(predictions, weights=weights, axis=0)
 
-    predictions2 = np.expm1(predictions2)
-    predictions2 = normalize_predictions(predictions2)
-
-    predictions3 = np.expm1(predictions3)
-    predictions3 = normalize_predictions(predictions3)
-    predictions = np.mean([predictions1, predictions2, predictions3], axis=0)
+    predictions = np.expm1(predictions)
+    predictions = normalize_predictions(predictions)
 
     return predictions
 
