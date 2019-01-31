@@ -1282,6 +1282,8 @@ columns_to_ohe.append('SaleCondition')
 
 columns_to_drop.extend(drop_intelligente)
 
+
+
 # %% REMOVE BAD FEATURES
 for x in columns_to_drop:
     assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
