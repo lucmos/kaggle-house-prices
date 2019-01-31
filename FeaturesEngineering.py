@@ -1,5 +1,7 @@
 from pathlib import Path
 
+from sklearn.impute import SimpleImputer
+
 from FeaturesFunctions import *
 from constants import *
 
@@ -21,6 +23,7 @@ numeric_columns = []
 boolean_columns = []
 drop_by_correlation = []
 drop_stupido = []
+drop_intelligente = []
 
 # %% ~~~~~ COMMON MAPPINGS ~~~~~
 qualities_dict = {NONE_VALUE: 0, 'Po': 1, 'Fa': 2, 'TA': 3, 'Gd': 4, 'Ex': 5}
@@ -132,8 +135,8 @@ columns_to_drop.append('Street')
 # Counter({nan: 2718, 'Grvl': 120, 'Pave': 78})
 complete_df['NoAlley'] = (complete_df['Alley'].notna()) * 1
 boolean_columns.append('NoAlley')
-columns_to_ohe.append('Alley')
-drop_stupido.append('Alley')  # TODO: Shouldn't we drop the original one?
+# columns_to_ohe.append('Alley')
+columns_to_drop.append('Alley')  # TODO: Shouldn't we drop the original one?
 # ok!
 
 
@@ -146,10 +149,10 @@ drop_stupido.append('Alley')  # TODO: Shouldn't we drop the original one?
 #
 # -> Counter({'Reg': 1859, 'IR1': 966, 'IR2': 76, 'IR3': 15})
 # -> So we can just transform this feature into a boolean one: IsLotShapeRegular
-complete_df['IsLotShapeRegular'] = (complete_df['LotShape'] == 'Reg') * 1
+# complete_df['IsLotShapeRegular'] = (complete_df['LotShape'] == 'Reg') * 1
+# boolean_columns.append('IsLotShapeRegular')
 columns_to_ohe.append('LotShape')
 drop_stupido.append('LotShape')
-boolean_columns.append('IsLotShapeRegular')
 # ok!
 
 
@@ -162,10 +165,10 @@ boolean_columns.append('IsLotShapeRegular')
 #
 # -> Counter({'Lvl': 2622, 'HLS': 120, 'Bnk': 115, 'Low': 59})
 # -> So we can just transform this feature into a boolean one: IsContourLandLevel
-complete_df['IsContourLandLevel'] = (complete_df['LandContour'] == 'Lvl') * 1
+# complete_df['IsContourLandLevel'] = (complete_df['LandContour'] == 'Lvl') * 1
+# boolean_columns.append('IsContourLandLevel')
 columns_to_ohe.append('LandContour')
-drop_stupido.append('LandContour')  # TODO: Shouldn't we drop the original one?
-boolean_columns.append('IsContourLandLevel')
+drop_stupido.append('LandContour')
 # ok!
 
 
@@ -190,8 +193,8 @@ columns_to_drop.append('Utilities')
 #        FR2  Frontage on 2 sides of property
 #        FR3  Frontage on 3 sides of property
 # Counter({'Inside': 2132, 'Corner': 510, 'CulDSac': 175, 'FR2': 85, 'FR3': 14})
-complete_df['IsLotConfigInside'] = (complete_df['LotConfig'] == 'Inside') * 1
-boolean_columns.append('IsLotConfigInside')
+# complete_df['IsLotConfigInside'] = (complete_df['LotConfig'] == 'Inside') * 1
+# boolean_columns.append('IsLotConfigInside')
 columns_to_ohe.append('LotConfig')
 # ok!
 
@@ -204,8 +207,8 @@ columns_to_ohe.append('LotConfig')
 #
 # -> Counter({'Gtl': 2776, 'Mod': 124, 'Sev': 16})
 # -> So we can just transform this feature into a boolean one: IsSlopeGentle
-complete_df['IsSlopeGentle'] = (complete_df['LandSlope'] == 'Gtl') * 1
-boolean_columns.append('IsSlopeGentle')
+# complete_df['IsSlopeGentle'] = (complete_df['LandSlope'] == 'Gtl') * 1
+# boolean_columns.append('IsSlopeGentle')
 columns_to_ohe.append('LandSlope')
 drop_stupido.append('LandSlope')
 # ok!
@@ -244,7 +247,7 @@ drop_stupido.append('LandSlope')
 complete_df['IsGoodNeighborhood'] = np.array([x in ('NridgHt', 'Crawfor', 'StoneBr', 'Somerst', 'NoRidge')
                                               for x in complete_df['Neighborhood']]) * 1
 boolean_columns.append('IsGoodNeighborhood')
-columns_to_drop.append('Neighborhood')
+columns_to_ohe.append('Neighborhood')
 
 
 # ok!
@@ -298,9 +301,12 @@ def conditions_merge(row):
 
 complete_df['Condition'] = complete_df.apply(conditions_merge, axis=1)
 columns_to_ohe.append('Condition')
-columns_to_ohe.extend(['Condition1', 'Condition2'])
 drop_stupido.append('Condition1')
 drop_stupido.append('Condition2')
+
+drop_intelligente.extend(['Condition1', 'Condition2'])
+columns_to_ohe.extend(['Condition1', 'Condition2'])
+
 # ok!
 
 
@@ -333,12 +339,12 @@ columns_to_ohe.append('BldgType')
 # -> Might have an order!
 # -> Some values not present in test, remove (after the OneHotEncoding) the column_value: {'2.5Fin'}
 # TODO: Nice handmade OHE
-complete_df['HouseStyle_1st'] = 1 * (complete_df['HouseStyle'] == '1Story')
-complete_df['HouseStyle_2st'] = 1 * (complete_df['HouseStyle'] == '2Story')
-complete_df['HouseStyle_15st'] = 1 * (complete_df['HouseStyle'] == '1.5Fin')
-boolean_columns.append('HouseStyle_1st')
-boolean_columns.append('HouseStyle_2st')
-boolean_columns.append('HouseStyle_15st')
+# complete_df['HouseStyle_1st'] = 1 * (complete_df['HouseStyle'] == '1Story')
+# complete_df['HouseStyle_2st'] = 1 * (complete_df['HouseStyle'] == '2Story')
+# complete_df['HouseStyle_15st'] = 1 * (complete_df['HouseStyle'] == '1.5Fin')
+# boolean_columns.append('HouseStyle_1st')
+# boolean_columns.append('HouseStyle_2st')
+# boolean_columns.append('HouseStyle_15st')
 
 complete_df['HouseStyle_int'] = complete_df['HouseStyle']
 complete_df = ints_encoding(complete_df, 'HouseStyle_int',
@@ -412,8 +418,8 @@ numeric_columns.append('OverallCondSimplified')
 numeric_columns.append('OverallCond')
 
 drop_stupido.extend(['OverallQual', 'OverallCond'])
-complete_df['OverallQualCond'] = (complete_df['OverallQual'] + complete_df['OverallCond']) / 2
-numeric_columns.append('OverallQualCond')
+# complete_df['OverallQualCond'] = (complete_df['OverallQual'] + complete_df['OverallCond']) / 2
+# numeric_columns.append('OverallQualCond')
 
 # ok!
 
@@ -484,10 +490,12 @@ columns_to_drop.append('RoofStyle')  # TODO Suggested to drop roofs
 #
 # -> Some values not present in test, remove (after the OneHotEncoding) the column_value {'Roll', 'Metal', 'Membran'}
 # columns_to_drop_to_avoid_overfit.extend(["RoofMatl_{}".format(x) for x in ["Roll", "Metal", "Membran"]])
-
-complete_df['RoofMatlEqualGtl'] = (complete_df['RoofMatl'] == 'CompShg') * 1
-boolean_columns.append('RoofMatlEqualGtl')
+# TODO: OHE?
 columns_to_drop.append('RoofMatl')
+
+# complete_df['RoofMatlEqualGtl'] = (complete_df['RoofMatl'] == 'CompShg') * 1
+# boolean_columns.append('RoofMatlEqualGtl')
+# columns_to_drop.append('RoofMatl')
 # ok!
 
 
@@ -864,8 +872,8 @@ numeric_columns.append('BsmtHalfBath')
 # ok!
 
 drop_by_correlation.extend(['BsmtFullBath', 'BsmtHalfBath'])
-complete_df['BsmtBaths'] = complete_df['BsmtFullBath'] + complete_df['BsmtHalfBath'] / 2
-numeric_columns.append('BsmtBaths')
+# complete_df['BsmtBaths'] = complete_df['BsmtFullBath'] + complete_df['BsmtHalfBath'] / 2
+# numeric_columns.append('BsmtBaths') # TODO
 
 # %% FullBath: Full bathrooms above grade
 #
@@ -878,8 +886,8 @@ numeric_columns.append('FullBath')
 numeric_columns.append('HalfBath')
 # ok!
 drop_by_correlation.extend(['HalfBath', 'FullBath'])
-complete_df['Baths'] = complete_df['FullBath'] + complete_df['HalfBath'] / 2
-numeric_columns.append('Baths')
+# complete_df['Baths'] = complete_df['FullBath'] + complete_df['HalfBath'] / 2
+# numeric_columns.append('Baths') TODO
 
 # %% BedroomAbvGr: Bedrooms above grade (does NOT include basement bedrooms) # todo wrong name in data description...
 #
@@ -1072,8 +1080,8 @@ complete_df['GarageQualCond'] = (complete_df['GarageCond'] + complete_df['Garage
 #
 # -> Counter({'Y': 2638, 'N': 216, 'P': 62})
 # -> Let's create a new boolean feature with the meaning 'has a paved drive?'
-complete_df['HasPavedDrive'] = (complete_df['PavedDrive'] == 'Y') * 1
-boolean_columns.append('HasPavedDrive')
+# complete_df['HasPavedDrive'] = (complete_df['PavedDrive'] == 'Y') * 1
+# boolean_columns.append('HasPavedDrive')
 
 drop_by_correlation.append('PavedDrive')
 
@@ -1196,8 +1204,13 @@ numeric_columns.append('Fence')
 # -> MiscVal: $Value of miscellaneous feature
 # -> Given this distribution, we can assume that the only useful info in this feature is the presence of a shed.
 # -> Let's create a boolean feature representing that keeping in mind the value of MiscVal that could be 0 (no shed!).
-columns_to_drop.append('MiscFeature')
-columns_to_drop.append('MiscVal')
+drop_stupido.append('MiscFeature')
+drop_stupido.append('MiscVal')
+
+complete_df['MiscVal_int'] = complete_df['MiscVal']
+numeric_columns.append('MiscVal_int')
+
+columns_to_ohe.extend(['MiscFeature', 'MiscVal'])
 
 
 def has_shed(row):
@@ -1267,6 +1280,8 @@ columns_to_ohe.append('SaleCondition')
 
 # columns_to_drop.extend(drop_by_correlation)  # TODO !
 
+columns_to_drop.extend(drop_intelligente)
+
 # %% REMOVE BAD FEATURES
 for x in columns_to_drop:
     assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
@@ -1291,7 +1306,14 @@ assert len(set(columns_to_ohe).union(numeric_columns).union(boolean_columns) - s
     "These are features declared in the lists but not present in the complete_df, NO BUONO! {}" \
         .format(set(columns_to_ohe).union(numeric_columns).union(boolean_columns) - set(complete_df.keys()))
 
-compute_correlation(complete_df)
+# compute_correlation(complete_df)
+
+# %% SIMPLE IMPUTING NAN VALUES
+simple_imputed_df = complete_df[columns_to_ohe]
+simple_imputer = SimpleImputer(strategy='most_frequent', verbose=1)
+simple_imputed_df = simple_imputer.fit_transform(simple_imputed_df)
+for_x_in = pd.DataFrame(data=simple_imputed_df, index=complete_df.index, columns=columns_to_ohe)
+complete_df.update(for_x_in)
 
 # %% PERFORM ONE HOT ENCODING
 for x in columns_to_ohe:
@@ -1303,6 +1325,7 @@ complete_df = pd.get_dummies(complete_df, columns=columns_to_ohe)
 # ~~~~~ REMOVE FEATURES TO AVOID OVERFIT~~~
 # Dropping bad features
 out = ['MSSubClass_150',
+       'MSSubClass_90',
        # "BsmtQual_Po", # TODO: se non usiamo l'ordinamento va messa!
        'MSZoning_C (all)']
 columns_to_drop_to_avoid_overfit.extend(out)
