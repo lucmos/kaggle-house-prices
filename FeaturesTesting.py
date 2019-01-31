@@ -61,11 +61,10 @@ print('Number of NaN in feature: {}'.format(complete_df[feature].isna().sum()))
 print(Counter(complete_df[feature]))
 print('Values missing in the training set: {}'.format(set(train_df[feature]).difference(set(test_df[feature]))))
 
-# for i, row in complete_df[['BsmtQual', 'BsmtCond']].iterrows():
-#     types = {row['BsmtQual'], row['BsmtCond']}
-#     types.discard('TA')
-#     if len(types) == 2:
-#         print(types)
+for i, row in complete_df[['MiscVal', 'MiscFeature']].iterrows():
+    types = {row['MiscFeature'], row['MiscVal']}
+    if not row['MiscFeature'] is np.nan:
+        print(row['MiscFeature'], row['MiscVal'])
 
 # for x in Counter(complete_df[feature]):
 #     print(x)

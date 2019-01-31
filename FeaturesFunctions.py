@@ -1,3 +1,4 @@
+import os
 from collections import Counter
 from pprint import pprint
 
@@ -132,6 +133,34 @@ def resolve_skewness(complete_df, numeric_features):
     return complete_df
 
 
+def plot_confusion_matrix(filename, data, labels):
+    """
+    Plots the confusion matrix using a seaborn heatmap
+    :param classes: labels of the confusion matrix
+    :param confusion_matrix: the confusion of matrix, in a list of list format
+    """
+
+    sns.set(style="white")
+
+    cmap = [(0, 1, 0, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1),
+            (0, 0, 0, 1)]
+
+    f, ax = plt.subplots(figsize=(20, 20))
+    annot = data
+    data = np.where(data != 0, np.log(data), 0)
+    heatmap = sns.heatmap(data, xticklabels=labels, cbar=False, yticklabels=labels, cmap=cmap,
+                          square=True, annot=annot, fmt="g", linewidths=1, annot_kws={"size": 11})  # font size
+    heatmap.yaxis.set_ticklabels(heatmap.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=12)
+    heatmap.xaxis.set_ticklabels(heatmap.xaxis.get_ticklabels(), rotation=45, ha='right', fontsize=12)
+    plt.title("Confusion Matrix")
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+    plt.tight_layout()
+
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    plt.savefig(filename, dpi=500)
+    plt.close(f)
+
 def show_correlation(df):
     sns.set(style="white")
 
@@ -142,21 +171,24 @@ def show_correlation(df):
     mask[np.triu_indices_from(mask)] = True
 
     # Set up the matplotlib figure
-    f, ax = plt.subplots(figsize=(11, 9))
+    f, ax = plt.subplots(figsize=(55, 9))
 
     # Generate a custom diverging colormap
     cmap = [(0, 1, 0, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1), (1, 1, 1, 1),
             (0, 0, 0, 1)]
 
+    heatmap = sns.heatmap(corr, xticklabels=df.columns, cbar=False, yticklabels=df.columns, cmap=cmap,
+                          square=True, fmt="g", linewidths=1, annot_kws={"size": 11})  # font size
+    heatmap.yaxis.set_ticklabels(heatmap.yaxis.get_ticklabels(), rotation=0, ha='right', fontsize=12)
+    heatmap.xaxis.set_ticklabels(heatmap.xaxis.get_ticklabels(), rotation=45, ha='right', fontsize=12)
+
     # Draw the heatmap with the mask and correct aspect ratio
-    sns.heatmap(corr, mask=mask, cmap=cmap, vmax=1, vmin=-1, center=0,
-                square=True, linewidths=.1, linecolor="gray", cbar_kws={"shrink": .5})
 
     plt.show()
 
 
 def compute_correlation(df):
-    # show_correlation(df)
+    # plot_confusion_matrix("./test.png", df.corr(), df.columns)
 
     # %% Features correlation search & removal (excluding NaN/null values)
     CORRELATION = 0.75
@@ -178,6 +210,7 @@ def compute_correlation(df):
     l = list(set(l))
     l = sorted(l, key=lambda x: abs(x[0]), reverse=True)
     pprint(l)
+
     return
 
     return
