@@ -14,7 +14,7 @@ from constants import *
 # -------------------------------------- DEV --------------------------------------
 NUMBER_OF_RANDOM_SPLITS = 50
 TEST_SIZE = 0.50
-PERFORM_VALIDATION = False
+PERFORM_VALIDATION = True
 PERFORM_PREDICTIONS = True
 
 

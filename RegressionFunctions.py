@@ -7,7 +7,7 @@ from sklearn.preprocessing import RobustScaler
 from sklearn.pipeline import make_pipeline
 
 from mlxtend.regressor import StackingCVRegressor
-from lightgbm import LGBMRegressor
+# from lightgbm import LGBMRegressor
 from xgboost import XGBRegressor
 
 # %% Global variables
@@ -42,29 +42,6 @@ def fit_predict(x_train, y_train, x_test):
     predictions2 = predicor2.predict(x_test)
     predictions3 = predicor3.predict(x_test)
 
-    # # %% Build models
-    # stack_gen_model_dev = get_stack_gen_model()
-    #
-    #
-    # # %% Fit models
-    # # prepare dataframes without numpy
-    # stackX_dev = np.array(x_dev)
-    # stacky_dev = np.array(y_dev)
-    # stack_gen_model_dev = stack_gen_model_dev.fit(stackX_dev, stacky_dev)
-    #
-    #
-    # # %% Perform predictions on dev
-    # # em_preds_dev = elastic_model3.predict(x_val)
-    # # lasso_preds_dev = lasso_model2.predict(x_val)
-    # # ridge_preds_dev = ridge_model2.predict(x_val)
-    # stack_gen_preds_dev = stack_gen_model_dev.predict(x_val)
-    # # xgb_preds_dev = xgb_fit.predict(x_val)
-    # # svr_preds_dev = svr_fit.predict(x_val)
-    # # lgbm_preds_dev = lgbm_fit.predict(x_val)
-    # predictions = stack_gen_preds_dev
-    #
-    #
-
     predictions1 = np.expm1(predictions1)
     predictions1 = normalize_predictions(predictions1)
 
@@ -77,6 +54,30 @@ def fit_predict(x_train, y_train, x_test):
 
     return predictions
 
+    # # %% Build models
+    # stack_gen_model = get_stack_gen_model()
+    #
+    # # %% Fit models
+    # # prepare dataframes without numpy
+    # stackX = np.array(x_train)
+    # stacky = np.array(y_train)
+    # stack_gen_model = stack_gen_model.fit(stackX, stacky)
+    #
+    # # %% Perform predictions on dev
+    # # em_preds_dev = elastic_model3.predict(x_val)
+    # # lasso_preds_dev = lasso_model2.predict(x_val)
+    # # ridge_preds_dev = ridge_model2.predict(x_val)
+    # stack_gen_preds_dev = stack_gen_model.predict(x_test)
+    # # xgb_preds_dev = xgb_fit.predict(x_val)
+    # # svr_preds_dev = svr_fit.predict(x_val)
+    # # lgbm_preds_dev = lgbm_fit.predict(x_val)
+    # predictions = stack_gen_preds_dev
+    #
+    # predictions = np.expm1(predictions)
+    # predictions = normalize_predictions(predictions)
+    #
+    # return predictions
+
 
 # %% Build stack gen model
 def get_stack_gen_model():
@@ -88,8 +89,6 @@ def get_stack_gen_model():
                           LassoCV(max_iter=1e7, alphas=alphas2,
                                   random_state=42, cv=kfolds))
 
-    e_alphas = [0.0001, 0.0002, 0.0003, 0.0004, 0.0005, 0.0006, 0.0007]
-    e_l1ratio = [0.8, 0.85, 0.9, 0.95, 0.99, 1]
     elasticnet = make_pipeline(RobustScaler(),
                                ElasticNetCV(max_iter=1e7, alphas=e_alphas,
                                             cv=kfolds, l1_ratio=e_l1ratio,
@@ -117,8 +116,8 @@ def get_stack_gen_model():
 
     # stack
     stack_gen = StackingCVRegressor(regressors=(ridge, lasso, elasticnet,
-                                                xgboost,
-                                                lightgbm
+                                                # xgboost,
+                                                # lightgbm
                                                 ),
                                     meta_regressor=xgboost,
                                     use_features_in_secondary=True)
