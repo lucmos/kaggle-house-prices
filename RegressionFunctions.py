@@ -146,10 +146,11 @@ def get_stack_gen_model():
     # grad = GradientBoostingRegressor(n_estimators=3000, verbose=True, learning_rate=0.02, max_depth=4, max_features='sqrt', min_samples_leaf=15, min_samples_split=50, loss='huber', random_state=5)
     # baye = BayesianRidge(fit_intercept=True, verbose=True, n_iter=10000)
 
-    ridge_meta = Ridge(alpha=15.0, fit_intercept = True)
+    # TODO  QUELLO CHE HA FATTO SCENDERE SOTTO LA SOGLIA DI 113 È QUESTO ALPHA! O.O
+    meta = Lasso(alpha = 0.0008, random_state=1, max_iter=50000)
     meta_regr = make_pipeline(
         RobustScaler(),
-        ridge_meta)
+        meta)
 
     ridge = Ridge(alpha=15.0, fit_intercept = True)
     lasso = Lasso(alpha = 0.0003, random_state=1, max_iter=50000)
@@ -185,7 +186,7 @@ def get_stack_gen_model():
                                     )
 
     print(meta_regr)
-    return stack_gen, ridge_meta, ridge, lasso, elasti, grad, baye
+    return stack_gen, meta, ridge, lasso, elasti, grad, baye
 
 
 def normalize_predictions(predictions):
