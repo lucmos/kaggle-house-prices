@@ -24,6 +24,7 @@ boolean_columns = []
 drop_by_correlation = []
 drop_stupido = []
 drop_intelligente = []
+drop_kaggle = []
 
 # %% ~~~~~ COMMON MAPPINGS ~~~~~
 qualities_dict = {NONE_VALUE: 0, 'Po': 1, 'Fa': 2, 'TA': 3, 'Gd': 4, 'Ex': 5}
@@ -105,6 +106,8 @@ columns_to_ohe.append('MSSubClass')
 complete_df['LotFrontage'] = complete_df.groupby('Neighborhood')['LotFrontage'].transform(
     lambda x: x.fillna(x.median()))
 numeric_columns.append('LotFrontage')
+#todo kaggle removal test up to here
+
 # TODO: fillna specific to the problem. May be worth to let it and not autoimpute.
 
 
@@ -1281,7 +1284,7 @@ columns_to_ohe.append('SaleCondition')
 # columns_to_drop.extend(drop_by_correlation)  # TODO !
 
 columns_to_drop.extend(drop_intelligente)
-
+columns_to_drop.extend(drop_kaggle)
 
 
 # %% REMOVE BAD FEATURES
@@ -1316,6 +1319,7 @@ simple_imputer = SimpleImputer(strategy='most_frequent', verbose=1)
 simple_imputed_df = simple_imputer.fit_transform(simple_imputed_df)
 for_x_in = pd.DataFrame(data=simple_imputed_df, index=complete_df.index, columns=columns_to_ohe)
 complete_df.update(for_x_in)
+# Removing this changes nothing (score remains: 0.11355), let's keep it since makes sense
 
 # %% PERFORM ONE HOT ENCODING
 for x in columns_to_ohe:
@@ -1326,11 +1330,14 @@ complete_df = pd.get_dummies(complete_df, columns=columns_to_ohe)
 
 # ~~~~~ REMOVE FEATURES TO AVOID OVERFIT~~~
 # Dropping bad features
-out = ['MSSubClass_150',
+out = [
+    'MSSubClass_150',
        'MSSubClass_90',
        # "BsmtQual_Po", # TODO: se non usiamo l'ordinamento va messa!
-       'MSZoning_C (all)']
+       'MSZoning_C (all)'
+]
 columns_to_drop_to_avoid_overfit.extend(out)
+# Removing this increases the  score from 0.0.11355 to 0.11522
 
 for x in columns_to_drop_to_avoid_overfit:
     assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
@@ -1346,12 +1353,16 @@ complete_df = impute(complete_df)
 
 # %% TotalSF
 # We can build a new feature from those two and the basement info: the total area of the two floors + the basement
-complete_df['TotalSF'] = backup_df['1stFlrSF'] + backup_df['2ndFlrSF'] + backup_df['TotalBsmtSF']
-numeric_columns.append('TotalSF')
+# complete_df['TotalSF'] = backup_df['1stFlrSF'] + backup_df['2ndFlrSF'] + backup_df['TotalBsmtSF']
+# numeric_columns.append('TotalSF')
+# Removing this improves the score from  0.11423 to 0.11414
+
 
 # %% Total home qual
-complete_df['Total_Home_Quality'] = backup_df['OverallQual'] + backup_df['OverallCond']
-numeric_columns.append('Total_Home_Quality')
+# complete_df['Total_Home_Quality'] = backup_df['OverallQual'] + backup_df['OverallCond']
+# numeric_columns.append('Total_Home_Quality')
+# Removing this improves the score from 0.11414 to 0.11366
+
 
 # %% TotalArea
 area_cols = ['LotFrontage', 'LotArea', 'MasVnrArea', 'BsmtFinSF1', 'BsmtFinSF2', 'BsmtUnfSF',
@@ -1359,35 +1370,42 @@ area_cols = ['LotFrontage', 'LotArea', 'MasVnrArea', 'BsmtFinSF1', 'BsmtFinSF2',
              'OpenPorchSF', 'EnclosedPorch', '3SsnPorch', 'ScreenPorch', 'LowQualFinSF', 'PoolArea']
 complete_df['TotalArea'] = backup_df[area_cols].sum(axis=1)
 numeric_columns.append('TotalArea')
+# Removing this increases the score from 0.11366 to 0.11400
 
 # %% Total_sqr_footage
-complete_df['Total_sqr_footage'] = (backup_df['BsmtFinSF1'] + backup_df['BsmtFinSF2'] +
-                                    backup_df['1stFlrSF'] + backup_df['2ndFlrSF'])
-numeric_columns.append('Total_sqr_footage')
+# complete_df['Total_sqr_footage'] = (backup_df['BsmtFinSF1'] + backup_df['BsmtFinSF2'] +
+#                                     backup_df['1stFlrSF'] + backup_df['2ndFlrSF'])
+# numeric_columns.append('Total_sqr_footage')
+# Removing this increases the score from to 0.11366 to 0.11382
 
 # %% Total_Bathrooms
 complete_df['Total_Bathrooms'] = (backup_df['FullBath'] + (0.5 * backup_df['HalfBath']) +
                                   backup_df['BsmtFullBath'] + (0.5 * backup_df['BsmtHalfBath']))
 numeric_columns.append('Total_Bathrooms')
+# Removing this increases the score from 0.11366 to 0.11422
 
 # %% Total_porch_sf
-complete_df['Total_porch_sf'] = (backup_df['OpenPorchSF'] + backup_df['3SsnPorch'] +
-                                 backup_df['EnclosedPorch'] + backup_df['ScreenPorch'] +
-                                 backup_df['WoodDeckSF'])
-numeric_columns.append('Total_porch_sf')
+# complete_df['Total_porch_sf'] = (backup_df['OpenPorchSF'] + backup_df['3SsnPorch'] +
+#                                  backup_df['EnclosedPorch'] + backup_df['ScreenPorch'] +
+#                                  backup_df['WoodDeckSF'])
+# numeric_columns.append('Total_porch_sf')
+# Removing this improves the score from 0.11366 to  0.11355
 
 # %% ~~~~~ FANCY IMPUTER ~~~~~
 complete_df = impute(complete_df)
 
 # %% Add logs
-complete_df = add_logs(complete_df)
+# complete_df = add_logs(complete_df)
+# Removing this improved the score from 0.11495 to 0.11423
 
 # %% Add Squared
-complete_df = add_squares(complete_df)
+# complete_df = add_squares(complete_df)
+# Removing this  improved the score from 0.11495 to 0.11474
 
 # %% ~~~~~ Resolve skewness ~~~~ TODO camuffa codice
 complete_df = resolve_skewness(complete_df, numeric_columns)
-
+# DO NOT remove: score increases from 0.11423 to 0.11528
+#
 # %% Infos
 # print(complete_df.info(verbose=True))
 # print(complete_df.info(verbose=False))
