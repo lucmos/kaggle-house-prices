@@ -106,7 +106,7 @@ columns_to_ohe.append('MSSubClass')
 complete_df['LotFrontage'] = complete_df.groupby('Neighborhood')['LotFrontage'].transform(
     lambda x: x.fillna(x.median()))
 numeric_columns.append('LotFrontage')
-#todo kaggle removal test up to here
+# Do not remove score increases from 0.11355 to   0.11368
 
 # TODO: fillna specific to the problem. May be worth to let it and not autoimpute.
 
@@ -114,6 +114,8 @@ numeric_columns.append('LotFrontage')
 # %% LotArea: Lot size in square feet
 #
 numeric_columns.append('LotArea')
+# Do not remove score increases from 0.11355 to 0.11362
+
 # ok!
 
 
@@ -138,8 +140,11 @@ columns_to_drop.append('Street')
 # Counter({nan: 2718, 'Grvl': 120, 'Pave': 78})
 complete_df['NoAlley'] = (complete_df['Alley'].notna()) * 1
 boolean_columns.append('NoAlley')
+# Do not remove, score increases from 0.11355 to  0.11407
+
 # columns_to_ohe.append('Alley')
 columns_to_drop.append('Alley')  # TODO: Shouldn't we drop the original one?
+
 # ok!
 
 
@@ -156,6 +161,8 @@ columns_to_drop.append('Alley')  # TODO: Shouldn't we drop the original one?
 # boolean_columns.append('IsLotShapeRegular')
 columns_to_ohe.append('LotShape')
 drop_stupido.append('LotShape')
+drop_kaggle.append('LotShape')
+# Removing, feature not useful (from 0.11358 to 0.11357)
 # ok!
 
 
@@ -172,6 +179,8 @@ drop_stupido.append('LotShape')
 # boolean_columns.append('IsContourLandLevel')
 columns_to_ohe.append('LandContour')
 drop_stupido.append('LandContour')
+# drop_kaggle.append('LandContour')
+# Do not remove, score increases from 0.11357 to 0.11383
 # ok!
 
 
@@ -199,6 +208,8 @@ columns_to_drop.append('Utilities')
 # complete_df['IsLotConfigInside'] = (complete_df['LotConfig'] == 'Inside') * 1
 # boolean_columns.append('IsLotConfigInside')
 columns_to_ohe.append('LotConfig')
+drop_kaggle.append('LotConfig')
+# Removing, score improves from 0.11357 to 0.11341
 # ok!
 
 
@@ -214,6 +225,8 @@ columns_to_ohe.append('LotConfig')
 # boolean_columns.append('IsSlopeGentle')
 columns_to_ohe.append('LandSlope')
 drop_stupido.append('LandSlope')
+drop_kaggle.append('LandSlope')
+# Removing, score improves from 0.11341 to 0.11323
 # ok!
 
 
@@ -250,9 +263,10 @@ drop_stupido.append('LandSlope')
 complete_df['IsGoodNeighborhood'] = np.array([x in ('NridgHt', 'Crawfor', 'StoneBr', 'Somerst', 'NoRidge')
                                               for x in complete_df['Neighborhood']]) * 1
 boolean_columns.append('IsGoodNeighborhood')
+# Not removing,  score increases from 0.11323 to 0.11389
+
 columns_to_ohe.append('Neighborhood')
-
-
+# Not removing, score increases from 0.11323 to 0.11408
 # ok!
 
 
@@ -304,11 +318,10 @@ def conditions_merge(row):
 
 complete_df['Condition'] = complete_df.apply(conditions_merge, axis=1)
 columns_to_ohe.append('Condition')
-drop_stupido.append('Condition1')
-drop_stupido.append('Condition2')
+# Not removing, score increases from 0.11323 to 0.11449
 
-drop_intelligente.extend(['Condition1', 'Condition2'])
 columns_to_ohe.extend(['Condition1', 'Condition2'])
+columns_to_drop.extend(['Condition1', 'Condition2'])
 
 # ok!
 
@@ -322,6 +335,7 @@ columns_to_ohe.extend(['Condition1', 'Condition2'])
 #        TwnhsI   Townhouse Inside Unit
 # Counter({'1Fam': 2422, 'TwnhsE': 227, 'Duplex': 109, 'Twnhs': 96, '2fmCon': 62})
 columns_to_ohe.append('BldgType')
+# Not removing, score increases from  0.11323 to 0.11364
 # ok!
 
 
@@ -354,7 +368,10 @@ complete_df = ints_encoding(complete_df, 'HouseStyle_int',
                             {'1.5Unf': 0, 'SFoyer': 1, '1.5Fin': 2, '2.5Unf': 3, 'SLvl': 4, '1Story': 5, '2Story': 6,
                              '2.5Fin': 7})
 numeric_columns.append('HouseStyle_int')
+# Do not remove, score increases from 0.11323 to 0.11365
+
 columns_to_ohe.append('HouseStyle')
+# Do not remove, score increases from 0.11323 to 0.11358
 
 columns_to_drop_to_avoid_overfit.append('HouseStyle_2.5Fin')
 # ok!
@@ -387,7 +404,10 @@ def overall_qual_simplify(row):
 
 complete_df['OverallQualSimplified'] = complete_df.apply(overall_qual_simplify, axis=1)
 numeric_columns.append('OverallQualSimplified')
+# Do not remove, score increases from 0.11323 to  0.11370
+
 numeric_columns.append('OverallQual')
+# DO NOT DROP,  score increase from 0.11323 to 0.11902  (porca vacca)
 # ok!
 
 
@@ -418,9 +438,13 @@ def overall_cond_simplify(row):
 
 complete_df['OverallCondSimplified'] = complete_df.apply(overall_cond_simplify, axis=1)
 numeric_columns.append('OverallCondSimplified')
-numeric_columns.append('OverallCond')
+# Do not remove, score increases from 0.11323 to  0.11360
 
-drop_stupido.extend(['OverallQual', 'OverallCond'])
+
+numeric_columns.append('OverallCond')
+# Do not remove, score increases from 0.11323 to   0.11576
+
+# drop_stupido.extend(['OverallQual', 'OverallCond'])
 # complete_df['OverallQualCond'] = (complete_df['OverallQual'] + complete_df['OverallCond']) / 2
 # numeric_columns.append('OverallQualCond')
 
@@ -440,27 +464,42 @@ drop_stupido.extend(['OverallQual', 'OverallCond'])
 # -> into 7 ranges (to obtain ~20 years for each bin):
 complete_df['YearBuiltBinned'] = pd.cut(complete_df['YearBuilt'], 7, labels=False)
 numeric_columns.append('YearBuiltBinned')
+# Do not remove, score increases from 0.11323 to   0.11349
+
 
 # -> Now, we don't care about the exact remodel date, we just want to know if it has been remodeled:
 complete_df['IsRemodeled'] = (complete_df['YearRemodAdd'] != complete_df['YearBuilt']) * 1
 boolean_columns.append('IsRemodeled')
 drop_by_correlation.append('IsRemodeled')
+# Do not remove, score increases from 0.11323 to  0.11356
+
 
 # -> Is the remodel a very recent one (same year of the sale)?
 complete_df['IsRemodelRecent'] = (complete_df['YearRemodAdd'] == complete_df['YrSold']) * 1
-drop_by_correlation.append('IsRemodelRecent')
-
 boolean_columns.append('IsRemodelRecent')
+drop_by_correlation.append('IsRemodelRecent')
+# Do not remove, score increases from 0.11323 to  0.11374
+
 
 complete_df['YearsSinceRemodel'] = complete_df['YrSold'].astype(int) - complete_df['YearRemodAdd'].astype(int)
 numeric_columns.append('YearsSinceRemodel')
+# Do not remove, score increases from 0.11323 to   0.11333
+
 
 # -> Is this house new (year of sale same as the year of construction)?
 complete_df['IsNewHouse'] = (complete_df['YearBuilt'] == complete_df['YrSold']) * 1
 boolean_columns.append('IsNewHouse')
+# Do not remove, score increases from 0.11323 to 0.11370
 
-numeric_columns.extend(['YearRemodAdd', 'YrSold', 'YearBuilt'])  # TODO someone threats them as categorical
-drop_stupido.extend(['YearRemodAdd', 'YrSold', 'YearBuilt'])
+
+numeric_columns.append('YearRemodAdd')
+# Do not remove, score increases from 0.11323 to 0.11350
+
+numeric_columns.append('YrSold')
+# Do not remove, score increases from 0.11323 to 0.11392
+
+numeric_columns.append('YearBuilt')
+# Do not remove, score increases from 0.11323 to 0.11420
 # ok!
 
 
@@ -475,6 +514,7 @@ drop_stupido.extend(['YearRemodAdd', 'YrSold', 'YearBuilt'])
 #
 # Counter({'Gable': 2310, 'Hip': 549, 'Gambrel': 22, 'Flat': 19, 'Mansard': 11, 'Shed': 5})
 columns_to_drop.append('RoofStyle')  # TODO Suggested to drop roofs
+# The removal is kaggle approved! (from 0.11325 to 0.11340)
 # ok!
 
 
@@ -492,13 +532,14 @@ columns_to_drop.append('RoofStyle')  # TODO Suggested to drop roofs
 # Counter({'CompShg': 2875, 'Tar&Grv': 22, 'WdShake': 9, 'WdShngl': 7, 'Metal': 1, 'Membran': 1, 'Roll': 1})
 #
 # -> Some values not present in test, remove (after the OneHotEncoding) the column_value {'Roll', 'Metal', 'Membran'}
-# columns_to_drop_to_avoid_overfit.extend(["RoofMatl_{}".format(x) for x in ["Roll", "Metal", "Membran"]])
-# TODO: OHE?
-columns_to_drop.append('RoofMatl')
+columns_to_drop_to_avoid_overfit.extend(["RoofMatl_{}".format(x) for x in ["Roll", "Metal", "Membran"]])
+columns_to_ohe.append('RoofMatl')
+# Keeping, score improved from 0.11325 to 0.11324
 
+#
 # complete_df['RoofMatlEqualGtl'] = (complete_df['RoofMatl'] == 'CompShg') * 1
 # boolean_columns.append('RoofMatlEqualGtl')
-# columns_to_drop.append('RoofMatl')
+# Removing score increase from 0.11325 to 0.11331
 # ok!
 
 
@@ -557,7 +598,11 @@ complete_df['Exterior1st'] = complete_df['Exterior1st'].replace(to_replace='Brk 
 complete_df['Exterior2nd'] = complete_df['Exterior2nd'].replace(to_replace='Brk Cmn', value='BrkComm')
 
 columns_to_ohe.append('Exterior1st')
+# Dot not removing, score increase from 0.11325 to 0.11391
+
 columns_to_ohe.append('Exterior2nd')
+# Dot not removing, score increase from 0.11325 to 0.11342
+
 
 # complete_df['Exterior'] = complete_df['Exterior1st'] TODO Difficult to implement if all ohe at the end
 # complete_df = ohe(complete_df, 'Exterior')
@@ -599,11 +644,16 @@ columns_to_ohe.append('Exterior2nd')
 # complete_df.loc[indexes_to_fill, 'MasVnrType'] = 'BrkFace'
 # complete_df['MasVnrType'] = complete_df['MasVnrType'].fillna(NONE_VALUE)
 numeric_columns.append('MasVnrArea')
+# Do not drop, score increase from 0.11325 to 0.11337
 
 complete_df['MasVnrType_int'] = complete_df['MasVnrType']
 complete_df = ints_encoding(complete_df, 'MasVnrType_int', {NONE_VALUE: 0, 'Stone': 1, 'BrkFace': 2, 'BrkCmn': 3})
 columns_to_ohe.append('MasVnrType')
+# Do not drop, score increase from 0.11325 to 0.11328
+
 numeric_columns.append('MasVnrType_int')
+drop_kaggle.append('MasVnrType_int')
+# Removing, score improves from 0.11325 to 0.11313
 # ok!
 
 
@@ -621,9 +671,11 @@ numeric_columns.append('MasVnrType_int')
 complete_df = ints_encoding(complete_df, 'ExterQual', qualities_dict)
 complete_df = ints_encoding(complete_df, 'ExterCond', qualities_dict)
 numeric_columns.extend(['ExterQual', 'ExterCond'])
+# ExterQual Not removing, score increases from 0.11313 to 0.11364
+# ExterQual Not removing, score increases from 0.11313 to 0.11354
 
-drop_stupido.extend(['ExterQual', 'ExterCond'])  # TODO: Drop
 complete_df['ExterQualCond'] = (complete_df['ExterQual'] + complete_df['ExterCond']) / 2
+# Not removing, score icnreases from 0.11313 to 0.11347
 # ok!
 
 
@@ -642,7 +694,12 @@ complete_df['Foundation_int'] = complete_df['Foundation']
 complete_df = ints_encoding(complete_df, 'Foundation_int',
                             {'BrkTil': 5, 'CBlock': 4, 'PConc': 3, 'Slab': 2, 'Stone': 1, 'Wood': 0})
 numeric_columns.append('Foundation_int')
-columns_to_drop.append('Foundation')
+# Not removing, score increases from 0.11313 to 0.11348
+
+drop_kaggle.append('Foundation')
+# Removing, score increases from 0.11313 to 0.11327
+
+
 drop_by_correlation.append('Foundation')
 # ok!
 
@@ -672,6 +729,7 @@ complete_df.loc[2522, 'BsmtCond'] = 'Gd'
 qualities_dict_custom = {NONE_VALUE: 0, 'Po': 3, 'Fa': 2, 'TA': 3, 'Gd': 4, 'Ex': 5}
 complete_df = ints_encoding(complete_df, 'BsmtQual', qualities_dict_custom)  # TODO dict custom made! MA CHE SCHIFO
 numeric_columns.append('BsmtQual')
+# Not removing, score increases from 0.11313 to 0.11359
 # ok!
 
 
@@ -686,12 +744,14 @@ numeric_columns.append('BsmtQual')
 #
 complete_df = ints_encoding(complete_df, 'BsmtCond', qualities_dict)
 numeric_columns.append('BsmtCond')
+# Not removing, score increases from 0.11313 to 0.11350
 # ok!
 
 drop_stupido.extend(['BsmtQual', 'BsmtCond'])  # TODO Drop
 # Union of Cond/Qual features
 complete_df['BsmtQualCond'] = (complete_df['BsmtQual'] + complete_df['BsmtCond']) / 2
 numeric_columns.append('BsmtQualCond')
+# Not removing, score increases from 0.11313 to 0.11351
 
 # %% BsmtExposure: Refers to walkout or garden level walls
 #
@@ -704,6 +764,7 @@ numeric_columns.append('BsmtQualCond')
 # -> TODO Gestisci differenza fra No e NA (?)
 complete_df = ints_encoding(complete_df, 'BsmtExposure', {NONE_VALUE: 0, 'No': 0, 'Mn': 2, 'Av': 3, 'Gd': 4})
 numeric_columns.append('BsmtExposure')
+# Not removing, score increases from 0.11313 to 0.11428
 # ok!
 
 
@@ -720,13 +781,16 @@ numeric_columns.append('BsmtExposure')
 
 drop_by_correlation.append('BsmtFinType1')
 columns_to_ohe.append('BsmtFinType1')
+# Not removing, score increases from 0.11313 to 0.11361
 
 complete_df['BsmtFinType1_int'] = complete_df['BsmtFinType1']
 complete_df = ints_encoding(complete_df, 'BsmtFinType1_int', fin_qualities_dict)
 numeric_columns.append('BsmtFinType1_int')
+# Not removing, score increases from 0.11313 to 0.11353
 
 complete_df['IsBsmtFinType1Unf'] = 1 * (complete_df['BsmtFinType1'] == 'Unf')
 boolean_columns.append('IsBsmtFinType1Unf')
+# Not removing, score increases from 0.11313 to 0.11346
 # ok!
 
 
@@ -734,8 +798,9 @@ boolean_columns.append('IsBsmtFinType1Unf')
 #
 drop_by_correlation.append('BsmtFinSF1')
 numeric_columns.append('BsmtFinSF1')
+# Not removing, score increases from 0.11313 to 0.11362
 # ok!
-
+# TODO kaggle bruteforced until here!
 
 # %% BsmtFinType2: Rating of basement finished area (if multiple types)
 #
@@ -778,6 +843,7 @@ numeric_columns.append('TotalBsmtSF')
 
 complete_df['BsmtIsPresent'] = complete_df['TotalBsmtSF'].apply(lambda x: 1 if x > 0 else 0)
 boolean_columns.append('BsmtIsPresent')
+# Not removing, score increases from 0.11313 to 0.11348
 # ok!
 
 
@@ -794,6 +860,7 @@ boolean_columns.append('BsmtIsPresent')
 # -> Some values not present in test, remove (after the OneHotEncoding) the column_value {'Floor', 'OthW'}
 columns_to_ohe.append('Heating')
 columns_to_drop_to_avoid_overfit.extend(["Heating_{}".format(x) for x in ["Floor", "OthW"]])
+# Not removing, score increases from 0.11313 to 0.11330
 # ok!
 
 
