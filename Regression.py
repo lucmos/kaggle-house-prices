@@ -10,7 +10,6 @@ from constants import *
 # %% Prepare data
 ((train_ids, x_train, y_train), (test_ids, x_test)) = get_engineered_train_test()
 
-
 # -------------------------------------- DEV --------------------------------------
 NUMBER_OF_RANDOM_SPLITS = 50
 TEST_SIZE = 0.50
@@ -19,7 +18,6 @@ PERFORM_PREDICTIONS = True
 
 
 def get_error_random_dev(title=""):
-
     if title:
         print(title)
 
@@ -39,15 +37,16 @@ def get_error_random_dev(title=""):
 
 if PERFORM_VALIDATION:
     print("Performing validation")
-    dev_errors = [get_error_random_dev("{}/{}".format(i+1, NUMBER_OF_RANDOM_SPLITS)) for i in range(NUMBER_OF_RANDOM_SPLITS)]
+    dev_errors = [get_error_random_dev("{}/{}".format(i + 1, NUMBER_OF_RANDOM_SPLITS)) for i in
+                  range(NUMBER_OF_RANDOM_SPLITS)]
     print("\n\nDEV ERROR ~ Stats over {} random splits with {} test\n"
           "> mean: {}\n"
           "> variance: {}\n"
           "> stdev: {}\n\n".format(NUMBER_OF_RANDOM_SPLITS,
-                                 TEST_SIZE,
-                                 np.mean(dev_errors),
-                                 np.var(dev_errors),
-                                 np.std(dev_errors)))
+                                   TEST_SIZE,
+                                   np.mean(dev_errors),
+                                   np.var(dev_errors),
+                                   np.std(dev_errors)))
     print("Done validating")
 
 

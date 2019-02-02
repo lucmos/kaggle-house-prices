@@ -266,6 +266,8 @@ boolean_columns.append('IsGoodNeighborhood')
 # Not removing,  score increases from 0.11323 to 0.11389
 
 columns_to_ohe.append('Neighborhood')
+
+
 # Not removing, score increases from 0.11323 to 0.11408
 # ok!
 
@@ -1353,7 +1355,6 @@ columns_to_ohe.append('SaleCondition')
 columns_to_drop.extend(drop_intelligente)
 columns_to_drop.extend(drop_kaggle)
 
-
 # %% REMOVE BAD FEATURES
 for x in columns_to_drop:
     assert x in complete_df, "Trying to drop {}, but it isn't in the df".format(x)
@@ -1399,9 +1400,9 @@ complete_df = pd.get_dummies(complete_df, columns=columns_to_ohe)
 # Dropping bad features
 out = [
     'MSSubClass_150',
-       'MSSubClass_90',
-       # "BsmtQual_Po", # TODO: se non usiamo l'ordinamento va messa!
-       'MSZoning_C (all)'
+    'MSSubClass_90',
+    # "BsmtQual_Po", # TODO: se non usiamo l'ordinamento va messa!
+    'MSZoning_C (all)'
 ]
 columns_to_drop_to_avoid_overfit.extend(out)
 # Removing this increases the  score from 0.0.11355 to 0.11522
