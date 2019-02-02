@@ -2,10 +2,12 @@ import numpy as np
 import pandas as pd
 from mlxtend.regressor import StackingCVRegressor
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.linear_model import Lasso, LassoCV, RidgeCV, ElasticNetCV, Ridge, ElasticNet, BayesianRidge
+from sklearn.linear_model import Lasso, LassoCV, RidgeCV, ElasticNetCV, Ridge, ElasticNet, BayesianRidge, \
+    LinearRegression
 from sklearn.model_selection import KFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import RobustScaler
+from xgboost import XGBRegressor
 
 RANDOM_STATE = 42
 
@@ -172,7 +174,7 @@ def get_stack_gen_model():
             grad),
         make_pipeline(
             RobustScaler(),
-            baye)
+            baye),
     ]
 
     # stack
