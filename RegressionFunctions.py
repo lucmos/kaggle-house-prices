@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from lightgbm import LGBMRegressor
 from mlxtend.regressor import StackingCVRegressor
 from scipy.stats import hmean
 from sklearn.ensemble import GradientBoostingRegressor
@@ -9,6 +10,7 @@ from sklearn.model_selection import KFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import QuantileTransformer, PowerTransformer, RobustScaler
 from scipy.stats.mstats import gmean
+from sklearn.svm import SVR
 from xgboost import XGBRegressor
 
 RANDOM_STATE = 42
@@ -56,7 +58,7 @@ def fit_predict(x_train, y_train, x_test):
                                       loss='huber', random_state=5)),
         make_pipeline(
              RobustScaler(),
-            BayesianRidge(fit_intercept=True, verbose=True, n_iter=10000)),
+            BayesianRidge(fit_intercept=True, verbose=True, n_iter=10000))
     ]
 
     for predictor in predictors:
@@ -71,9 +73,14 @@ def fit_predict(x_train, y_train, x_test):
     stacked.fit(x_train_sta, y_train_sta)
     pred_sta = stacked.predict(x_test_sta)
 
-    predictions.append(pred_sta)
+    # predictions.append(pred_sta)
+    #
+    # predictions = gmean(predictions, axis=0)
 
-    predictions = gmean(predictions, axis=0)
+    predictions = ((0.15 * predictions[0]) + (0.15 * predictions[1]) + (0.15 * predictions[2])
+                   + (0.15 * predictions[3]) + (0.05 * predictions[4])
+                   + (0.35 * pred_sta))
+
     # predictions = np.average(predictions, weights=[1.1, 1.1, 1, 1, 1, 1.2], axis=0)
     # predictions = hmean(predictions, axis=0)
     # todo use gmean()
@@ -126,6 +133,7 @@ def get_stack_gen_model():
                                     meta_regressor=meta_regr,
                                     use_features_in_secondary=True,
                                    cv=kfolds )
+
 
     return stack_gen
 

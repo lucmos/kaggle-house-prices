@@ -1085,7 +1085,7 @@ columns_to_ohe.append('GarageType')
 complete_df.loc[2574, 'GarageCars'] = complete_df['GarageCars'].median()
 complete_df.loc[2124, 'GarageArea'] = complete_df['GarageArea'].median()
 complete_df.loc[2574, 'GarageArea'] = complete_df['GarageArea'].median()
-
+complete_df.loc[2590, 'GarageYrBlt'] = 2007
 
 
 # %% GarageYrBlt: Year garage was built
@@ -1256,12 +1256,6 @@ boolean_columns.append('HasScreenPorch')
 # PoolQC: Pool quality
 # Counter({nan: 2907, 'Ex': 4, 'Gd': 3, 'Fa': 2})
 # Let's just merge those two features into a simple 'has a pool?'
-# complete_df.loc[2418, 'PoolQC'] = 'Fa'
-# complete_df.loc[2501, 'PoolQC'] = 'Gd'
-# complete_df.loc[2597, 'PoolQC'] = 'Fa'
-# complete_df['PoolQC'] = complete_df['PoolQC']
-
-
 drop_by_correlation.append('PoolArea')
 drop_by_correlation.append('PoolQC')
 
