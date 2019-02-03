@@ -50,7 +50,7 @@ complete_df = pd.concat([train_df, test_df])
 assert complete_df.shape[0] == train_obs + test_obs
 qualities_dict = {'None': 0, "Po": 1, "Fa": 2, "TA": 3, "Gd": 4, "Ex": 5}
 
-feature = 'HalfBath'
+feature = 'LowQualFinSF'
 
 nan_mask = complete_df.isnull().any()
 nan_columns = nan_mask[nan_mask]
@@ -58,13 +58,16 @@ print('Feature: {}'.format(feature))
 print('Contains NaN values: {}'.format(feature in nan_columns))
 print("Number of values:", len(Counter(complete_df[feature])))
 print('Number of NaN in feature: {}'.format(complete_df[feature].isna().sum()))
-print(Counter(complete_df[feature]))
+counter = Counter(complete_df[feature])
+print(counter)
 print('Values missing in the training set: {}'.format(set(train_df[feature]).difference(set(test_df[feature]))))
 
-for i, row in complete_df[['MiscVal', 'MiscFeature']].iterrows():
-    types = {row['MiscFeature'], row['MiscVal']}
-    if not row['MiscFeature'] is np.nan:
-        print(row['MiscFeature'], row['MiscVal'])
+plt.bar(counter.keys(), counter.values())
+plt.show()
+# for i, row in complete_df[['MiscVal', 'MiscFeature']].iterrows():
+#     types = {row['MiscFeature'], row['MiscVal']}
+#     if not row['MiscFeature'] is np.nan:
+#         print(row['MiscFeature'], row['MiscVal'])
 
 # for x in Counter(complete_df[feature]):
 #     print(x)
