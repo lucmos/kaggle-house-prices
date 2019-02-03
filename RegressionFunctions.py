@@ -22,9 +22,8 @@ def geo_mean_overflow(iterable):
     return np.exp(a.sum() / len(a))
 
 
-
-
 def fit_predict(x_train, y_train, x_test):
+    # y_train = quantile_reductions(y_train, max_norm=0.9, min_norm=1.05)
     y_train = np.log1p(y_train)
 
     kfolds = KFold(n_splits=20, shuffle=True, random_state=RANDOM_STATE)
@@ -93,7 +92,8 @@ def fit_predict(x_train, y_train, x_test):
                    + (0.35 * pred_sta))
 
     def _post_average(preds):
-        return np.asarray(normalize_predictions(preds))
+        preds = quantile_reductions(preds)
+        return approximate(preds)
 
     predictions = _post_average(predictions)
 
@@ -141,30 +141,29 @@ def get_stack_gen_model():
     stack_gen = StackingCVRegressor(regressors=predictors,
                                     meta_regressor=meta_regr,
                                     use_features_in_secondary=True,
-                                   cv=kfolds )
-
-
+                                    cv=kfolds )
     return stack_gen
 
 
-def transform(x):
-    round_value = 1000
-    int_price = int(x)
-    remainder = int_price % round_value
-    if remainder >= round_value / 2:
-        int_price += (round_value - remainder)
-    else:
-        int_price -= remainder
+def approximate(preds):
+    def _transform(x):
+        round_value = 1000
+        int_price = int(x)
+        remainder = int_price % round_value
+        if remainder >= round_value / 2:
+            int_price += (round_value - remainder)
+        else:
+            int_price -= remainder
 
-    return int_price
+        return int_price
+    return np.asarray([_transform(x) for x in preds])
 
 
-def normalize_predictions(predictions):
+def quantile_reductions(predictions, max_tresh=0.0042, max_norm=0.77, min_tresh=0.99, min_norm =1.1):
     predictions_df = pd.DataFrame()
     predictions_df['norm'] = predictions
-    q1 = predictions_df['norm'].quantile(0.0042)
-    q2 = predictions_df['norm'].quantile(0.99)
-    predictions_df['norm'] = predictions_df['norm'].apply(lambda x: x if x > q1 else x * 0.77)
-    predictions_df['norm'] = predictions_df['norm'].apply(lambda x: x if x < q2 else x * 1.1)
-
-    return [transform(x) for x in predictions_df['norm'].values]
+    q1 = predictions_df['norm'].quantile(max_tresh)
+    q2 = predictions_df['norm'].quantile(min_tresh)
+    predictions_df['norm'] = predictions_df['norm'].apply(lambda x: x if x > q1 else x * max_norm)
+    predictions_df['norm'] = predictions_df['norm'].apply(lambda x: x if x < q2 else x * min_norm)
+    return predictions_df['norm'].values
