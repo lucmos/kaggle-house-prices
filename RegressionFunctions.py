@@ -8,25 +8,18 @@ from sklearn.linear_model import Lasso, LassoCV, RidgeCV, ElasticNetCV, Ridge, E
 from sklearn.model_selection import KFold
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import QuantileTransformer, PowerTransformer, RobustScaler
+from scipy.stats.mstats import gmean
 from xgboost import XGBRegressor
 
 RANDOM_STATE = 42
 
 
 # %% Global variables
-
-
-def print_corss_score(predictor_fitted):
-    alphas = np.logspace(-3, -1, 30)
-    # todo completa!
-
-
 def geo_mean_overflow(iterable):
     a = np.log(iterable)
     return np.exp(a.sum() / len(a))
 
 
-from scipy.stats.mstats import gmean
 
 
 def fit_predict(x_train, y_train, x_test):
@@ -46,10 +39,10 @@ def fit_predict(x_train, y_train, x_test):
     predictors = [
         make_pipeline(
              RobustScaler(),
-            RidgeCV(alphas=ridge_alphas, cv=None, fit_intercept=True, store_cv_values=True)),
+            RidgeCV(alphas=ridge_alphas, cv=kfolds, fit_intercept=True)),
         make_pipeline(
              RobustScaler(),
-            LassoCV(max_iter=1e8, alphas=lasso_alpha, selection='random', verbose=True, random_state=RANDOM_STATE,
+            LassoCV(max_iter=1e8, alphas=lasso_alpha, verbose=True, random_state=RANDOM_STATE,
                     cv=kfolds, n_jobs=12, fit_intercept=True)),
         make_pipeline(
              RobustScaler(),
@@ -74,15 +67,9 @@ def fit_predict(x_train, y_train, x_test):
     x_train_sta = np.asarray(x_train)
     y_train_sta = np.asarray(y_train)
     x_test_sta = np.asarray(x_test)
-    stacked, ridge_meta, ridge, lasso, elasti, grad, baye = get_stack_gen_model()
+    stacked = get_stack_gen_model()
     stacked.fit(x_train_sta, y_train_sta)
     pred_sta = stacked.predict(x_test_sta)
-
-    # print("Meta ridge alpha: {}".format(ridge_meta.coef_))
-    #
-    # print("ridge alpha: {}".format(ridge.coef_))
-    # print("lasso alpha: {}".format(lasso.coef_))
-    # print("elasti lapha: {} \t elastic l1_ratio: {}".format(elasti.alpha_, elasti.l1_ratio_))
 
     predictions.append(pred_sta)
 
@@ -99,6 +86,8 @@ def fit_predict(x_train, y_train, x_test):
 
 # %% Build stack gen model
 def get_stack_gen_model():
+    kfolds = KFold(n_splits=10, shuffle=True, random_state=RANDOM_STATE)
+
     # TODO  QUELLO CHE HA FATTO SCENDERE SOTTO LA SOGLIA DI 113 È QUESTO ALPHA! O.O
     meta = Lasso(alpha=0.0007, random_state=RANDOM_STATE, max_iter=50000)
     meta_regr = make_pipeline(
@@ -136,9 +125,9 @@ def get_stack_gen_model():
     stack_gen = StackingCVRegressor(regressors=predictors,
                                     meta_regressor=meta_regr,
                                     use_features_in_secondary=True,
-                                    )
+                                   cv=kfolds )
 
-    return stack_gen, meta, ridge, lasso, elasti, grad, baye
+    return stack_gen
 
 
 def transform(x):

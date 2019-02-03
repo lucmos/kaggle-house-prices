@@ -1077,7 +1077,7 @@ boolean_columns.append('FireplaceIsPresent')
 #    which will be mapped to 0 meaning there's no fireplace.
 # -> We can do this since the rows with false 'HasFireplaces' are the same with NaN 'FireplaceQu'!
 complete_df = ints_encoding(complete_df, 'FireplaceQu', qualities_dict)
-boolean_columns.append('FireplaceQu')
+numeric_columns.append('FireplaceQu')
 # Not removing, score increases from  0.11271 to  0.11329 todo fatto fino a qui
 # ok!
 
@@ -1094,6 +1094,12 @@ boolean_columns.append('FireplaceQu')
 #
 columns_to_ohe.append('GarageType')
 # ok!
+
+complete_df.loc[2574, 'GarageCars'] = complete_df['GarageCars'].median()
+
+complete_df.loc[2124, 'GarageArea'] = complete_df['GarageArea'].median()
+complete_df.loc[2574, 'GarageArea'] = complete_df['GarageArea'].median()
+
 
 
 # %% GarageYrBlt: Year garage was built
@@ -1269,6 +1275,8 @@ boolean_columns.append('HasScreenPorch')
 # complete_df.loc[2501, 'PoolQC'] = 'Gd'
 # complete_df.loc[2597, 'PoolQC'] = 'Fa'
 # complete_df['PoolQC'] = complete_df['PoolQC']
+
+
 drop_by_correlation.append('PoolArea')
 drop_by_correlation.append('PoolQC')
 
