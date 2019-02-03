@@ -64,29 +64,38 @@ def fit_predict(x_train, y_train, x_test):
     for predictor in predictors:
         predictor.fit(x_train, y_train)
 
-    predictions = [predictor.predict(x_test) for predictor in predictors]
-
     x_train_sta = np.asarray(x_train)
     y_train_sta = np.asarray(y_train)
     x_test_sta = np.asarray(x_test)
     stacked = get_stack_gen_model()
     stacked.fit(x_train_sta, y_train_sta)
+
+    pred_ridge = predictors[0].predict(x_test)
+    pred_lasso = predictors[1].predict(x_test)
+    pred_ela = predictors[2].predict(x_test)
+    pred_grad = predictors[3].predict(x_test)
+    pred_baye = predictors[4].predict(x_test)
     pred_sta = stacked.predict(x_test_sta)
 
-    # predictions.append(pred_sta)
-    #
-    # predictions = gmean(predictions, axis=0)
+    def _pre_average(preds):
+        preds = np.expm1(preds)
+        return preds
 
-    predictions = ((0.15 * predictions[0]) + (0.15 * predictions[1]) + (0.15 * predictions[2])
-                   + (0.15 * predictions[3]) + (0.05 * predictions[4])
+    pred_ridge = _pre_average(pred_ridge)
+    pred_lasso = _pre_average(pred_lasso)
+    pred_ela = _pre_average(pred_ela)
+    pred_grad = _pre_average(pred_grad)
+    pred_baye = _pre_average(pred_baye)
+    pred_sta = _pre_average(pred_sta)
+
+    predictions = ((0.15 * pred_ridge) + (0.15 * pred_lasso) + (0.15 * pred_ela)
+                   + (0.15 * pred_grad) + (0.05 * pred_baye)
                    + (0.35 * pred_sta))
 
-    # predictions = np.average(predictions, weights=[1.1, 1.1, 1, 1, 1, 1.2], axis=0)
-    # predictions = hmean(predictions, axis=0)
-    # todo use gmean()
+    def _post_average(preds):
+        return np.asarray(normalize_predictions(preds))
 
-    predictions = np.expm1(predictions)
-    predictions = normalize_predictions(predictions)
+    predictions = _post_average(predictions)
 
     return predictions
 
