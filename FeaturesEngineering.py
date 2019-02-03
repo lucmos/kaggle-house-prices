@@ -1179,7 +1179,7 @@ numeric_columns.append('GarageCond')
 drop_stupido.extend(['GarageQual', 'GarageCond'])  # TODO: Drop
 # Union of Cond/Qual features
 complete_df['GarageQualCond'] = (complete_df['GarageCond'] + complete_df['GarageQual']) / 2
-numeric_columns.append('GarageQualCond')
+# numeric_columns.append('GarageQualCond')
 # Not removing, score drop to 0.11338
 
 # %% PavedDrive: Paved driveway
