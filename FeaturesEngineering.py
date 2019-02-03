@@ -44,7 +44,7 @@ train_df.drop(train_df[(train_df['GrLivArea'] > 4000) & (train_df['SalePrice'] <
 train_df.reset_index(drop=True, inplace=True)
 
 # %% ~~~~~ Log Sale Price ~~~~~
-y_train = np.log1p(train_df['SalePrice'])
+y_train = train_df['SalePrice']
 train_df = train_df.drop(columns=['SalePrice'])
 
 # %% ~~~~~ Drop Id column ~~~~~
@@ -266,8 +266,6 @@ boolean_columns.append('IsGoodNeighborhood')
 # Not removing,  score increases from 0.11323 to 0.11389
 
 columns_to_ohe.append('Neighborhood')
-
-
 # Not removing, score increases from 0.11323 to 0.11408
 # ok!
 
@@ -728,8 +726,7 @@ complete_df.loc[2522, 'BsmtCond'] = 'Gd'
 #        Po   Poor (<70 inches
 #        NA   No Basement
 #
-qualities_dict_custom = {NONE_VALUE: 0, 'Po': 3, 'Fa': 2, 'TA': 3, 'Gd': 4, 'Ex': 5}
-complete_df = ints_encoding(complete_df, 'BsmtQual', qualities_dict_custom)  # TODO dict custom made! MA CHE SCHIFO
+complete_df = ints_encoding(complete_df, 'BsmtQual', qualities_dict)
 numeric_columns.append('BsmtQual')
 # Not removing, score increases from 0.11313 to 0.11359
 # ok!
@@ -802,7 +799,6 @@ drop_by_correlation.append('BsmtFinSF1')
 numeric_columns.append('BsmtFinSF1')
 # Not removing, score increases from 0.11313 to 0.11362
 # ok!
-# TODO kaggle bruteforced until here!
 
 # %% BsmtFinType2: Rating of basement finished area (if multiple types)
 #
@@ -817,31 +813,41 @@ numeric_columns.append('BsmtFinSF1')
 
 drop_by_correlation.append('BsmtFinType2')
 columns_to_ohe.append('BsmtFinType2')
+# Not removing, score increases from  0.11271 to 0.11352
+
 
 complete_df['BsmtFinType2_int'] = complete_df['BsmtFinType2']
 complete_df = ints_encoding(complete_df, 'BsmtFinType2_int', fin_qualities_dict)
 numeric_columns.append('BsmtFinType2_int')
+# drop_kaggle.append('BsmtFinType2_int')
+# Not removing, score increases from  0.11271 to 0.11309
+
 
 complete_df['IsBsmtFinType2Unf'] = 1 * (complete_df['BsmtFinType2'] == 'Unf')
 boolean_columns.append('IsBsmtFinType2Unf')
+# Not removing, score increases from  0.11271 to 0.11315
 # ok!
 
 
 # %% BsmtFinSF2: Type 2 finished square feet
 #
 numeric_columns.append('BsmtFinSF2')
+# Not removing, score increases from  0.11271 to 0.11383
 # ok!
 
 
 # %% BsmtUnfSF: Unfinished square feet of basement area
 #
 numeric_columns.append('BsmtUnfSF')
+# Not removing, score increases from  0.11271 to 0.11379
 # ok!
 
 
 # %% TotalBsmtSF: Total square feet of basement area
 #
 numeric_columns.append('TotalBsmtSF')
+# Not removing, score increases from  0.11271 to 0.11385
+
 
 complete_df['BsmtIsPresent'] = complete_df['TotalBsmtSF'].apply(lambda x: 1 if x > 0 else 0)
 boolean_columns.append('BsmtIsPresent')
@@ -877,6 +883,7 @@ columns_to_drop_to_avoid_overfit.extend(["Heating_{}".format(x) for x in ["Floor
 # Counter({'Ex': 1490, 'TA': 857, 'Gd': 474, 'Fa': 92, 'Po': 3})
 complete_df = ints_encoding(complete_df, 'HeatingQC', qualities_dict)
 numeric_columns.append('HeatingQC')
+# Not removing, score increases from  0.11271 to 0.11357
 # ok!
 
 
@@ -887,6 +894,7 @@ numeric_columns.append('HeatingQC')
 #
 complete_df['CentralAir'] = (complete_df['CentralAir'] == 'Y') * 1
 boolean_columns.append('CentralAir')
+# Not removing, score increases from  0.11271 to 0.11354
 # ok!
 
 
@@ -903,44 +911,55 @@ boolean_columns.append('CentralAir')
 # -> Some values not present in test, remove (after the OneHotEncoding) the column_value {'Mix'}
 columns_to_ohe.append('Electrical')
 columns_to_drop_to_avoid_overfit.append('Electrical_Mix')
+# Not removing, score increases from  0.11271 to 0.11350
 # ok!
 
 
 # %% 1stFlrSF: First Floor square feet
 numeric_columns.append('1stFlrSF')
+# Not removing, score increases from  0.11271 to 0.11323
 # ok!
-
 
 # %% 2ndFlrSF: Second floor square feet
 #
 numeric_columns.append('2ndFlrSF')
+# Not removing, score increases from  0.11271 to 0.11398
 
 complete_df['2ndFloorIsPresent'] = (complete_df['2ndFlrSF'] > 0) * 1
 boolean_columns.append('2ndFloorIsPresent')
+# Not removing, score increases from  0.11271 to 0.11332
 # ok!
 
 
 # %% LowQualFinSF: Low quality finished square feet (all floors)
 #
 numeric_columns.append('LowQualFinSF')
+# Not removing, score increases from  0.11271 to 0.11346
+#
 # ok!
 
 
 # %% GrLivArea: Above grade (ground) living area square feet
 #
 numeric_columns.append('GrLivArea')
+# complete_df['GrLivArea_Greater'] = (complete_df['GrLivArea'] > 1500) * 1
+# boolean_columns.append('GrLivArea_Greater')
+
+# Not removing, score increases from  0.11271 to 0.11408
 # ok!
 
 
 # %% BsmtFullBath: Basement full bathrooms
 #
 numeric_columns.append('BsmtFullBath')
+# Not removing, score increases from  0.11271 to 0.11308
 # ok!
 
 
 # %% BsmtHalfBath: Basement half bathrooms
 #
 numeric_columns.append('BsmtHalfBath')
+# Not removing, score increases from  0.11271 to 0.11341
 # ok!
 
 drop_by_correlation.extend(['BsmtFullBath', 'BsmtHalfBath'])
@@ -950,12 +969,15 @@ drop_by_correlation.extend(['BsmtFullBath', 'BsmtHalfBath'])
 # %% FullBath: Full bathrooms above grade
 #
 numeric_columns.append('FullBath')
+# Not removing, score increases from  0.11271 to 0.11305
 # ok!
 
 
 # %% HalfBath: Half baths above grade
 #
 numeric_columns.append('HalfBath')
+# Not removing, score increases from  0.11271 to 0.11298
+
 # ok!
 drop_by_correlation.extend(['HalfBath', 'FullBath'])
 # complete_df['Baths'] = complete_df['FullBath'] + complete_df['HalfBath'] / 2
@@ -964,12 +986,14 @@ drop_by_correlation.extend(['HalfBath', 'FullBath'])
 # %% BedroomAbvGr: Bedrooms above grade (does NOT include basement bedrooms) # todo wrong name in data description...
 #
 numeric_columns.append('BedroomAbvGr')
+# Not removing, score increases from  0.11271 to 0.11317
 # ok!
 
 
 # %% KitchenAbvGr: Kitchens above grade #todo Wrong name in data description....
 #
 numeric_columns.append('KitchenAbvGr')
+# Not removing, score increases from  0.11271 to 0.11344
 # ok!
 
 
@@ -985,12 +1009,14 @@ numeric_columns.append('KitchenAbvGr')
 # -> Let's fill the single NaN value with the most common one (that also stands for 'average'!) TODO: Ok, but do it!
 complete_df = ints_encoding(complete_df, 'KitchenQual', qualities_dict)
 numeric_columns.append('KitchenQual')
+# Not removing, score increases from  0.11271 to 0.11363
 # ok!
 
 
 # %% TotRmsAbvGrd: Total rooms above grade (does not include bathrooms)
 #
 numeric_columns.append('TotRmsAbvGrd')
+# Not removing, score increases from  0.11271 to 0.11312
 # ok!
 
 
@@ -1013,8 +1039,11 @@ complete_df = ints_encoding(complete_df, 'Functional_int',
                             {NONE_VALUE: 0, 'Sal': 1, 'Sev': 2, 'Maj2': 3, 'Maj1': 4, 'Mod': 5, 'Min2': 6, 'Min1': 7,
                              'Typ': 8})
 
-columns_to_ohe.append('Functional')
 numeric_columns.append('Functional_int')
+# Not removing, score increases from  0.11271 to  0.11343
+
+columns_to_ohe.append('Functional')
+# Not removing, score increases from  0.11271 to  0.11297
 # ok!
 
 
@@ -1036,14 +1065,20 @@ numeric_columns.append('Functional_int')
 # -> First, let's simplify the 'Fireplaces' feature into a boolean one
 drop_stupido.append('Fireplaces')  # TODO: DROOOOOOOOP
 numeric_columns.append('Fireplaces')
+# Not removing, score increases from  0.11271 to  0.11347
+
 
 complete_df['FireplaceIsPresent'] = (complete_df['Fireplaces'] > 0) * 1
 boolean_columns.append('FireplaceIsPresent')
+# Not removing, score increases from  0.11271 to  0.11328
+
+
 # -> Now, let's map the NaN values of 'FireplaceQu' to NONE_VALUE,
 #    which will be mapped to 0 meaning there's no fireplace.
 # -> We can do this since the rows with false 'HasFireplaces' are the same with NaN 'FireplaceQu'!
 complete_df = ints_encoding(complete_df, 'FireplaceQu', qualities_dict)
 boolean_columns.append('FireplaceQu')
+# Not removing, score increases from  0.11271 to  0.11329 todo fatto fino a qui
 # ok!
 
 
@@ -1067,6 +1102,7 @@ columns_to_ohe.append('GarageType')
 # complete_df.loc[2574, 'GarageYrBlt'] = complete_df['GarageYrBlt'].median()
 # complete_df.loc[2590, 'GarageYrBlt'] = 2007
 numeric_columns.append('GarageYrBlt')
+#Not removing, score drops
 
 complete_df["GarageIsPresent"] = (complete_df["GarageYrBlt"] > 0) * 1
 boolean_columns.append('GarageIsPresent')
@@ -1143,6 +1179,8 @@ numeric_columns.append('GarageCond')
 drop_stupido.extend(['GarageQual', 'GarageCond'])  # TODO: Drop
 # Union of Cond/Qual features
 complete_df['GarageQualCond'] = (complete_df['GarageCond'] + complete_df['GarageQual']) / 2
+numeric_columns.append('GarageQualCond')
+# Not removing, score drop to 0.11338
 
 # %% PavedDrive: Paved driveway
 #
@@ -1154,6 +1192,7 @@ complete_df['GarageQualCond'] = (complete_df['GarageCond'] + complete_df['Garage
 # -> Let's create a new boolean feature with the meaning 'has a paved drive?'
 # complete_df['HasPavedDrive'] = (complete_df['PavedDrive'] == 'Y') * 1
 # boolean_columns.append('HasPavedDrive')
+# Removing, score drops to 0.11315
 
 drop_by_correlation.append('PavedDrive')
 
@@ -1292,10 +1331,12 @@ def has_shed(row):
 
 complete_df['HasShed'] = complete_df.apply(has_shed, axis=1)
 boolean_columns.append('HasShed')
+# Not dropping, score increases
 
 # %% MoSold: Month Sold (MM)
 #
 numeric_columns.append('MoSold')
+
 # complete_df['MoSold'] = complete_df['MoSold'].astype(str)
 # complete_df = ohe(complete_df, 'MoSold')
 
