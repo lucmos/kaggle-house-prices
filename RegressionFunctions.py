@@ -1,17 +1,11 @@
 import numpy as np
 import pandas as pd
-from lightgbm import LGBMRegressor
 from mlxtend.regressor import StackingCVRegressor
-from scipy.stats import hmean
 from sklearn.ensemble import GradientBoostingRegressor
-from sklearn.linear_model import Lasso, LassoCV, RidgeCV, ElasticNetCV, Ridge, ElasticNet, BayesianRidge, \
-    LinearRegression
+from sklearn.linear_model import Lasso, LassoCV, RidgeCV, ElasticNetCV, Ridge, ElasticNet, BayesianRidge
 from sklearn.model_selection import KFold
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import QuantileTransformer, PowerTransformer, RobustScaler
-from scipy.stats.mstats import gmean
-from sklearn.svm import SVR
-from xgboost import XGBRegressor
+from sklearn.preprocessing import RobustScaler
 
 RANDOM_STATE = 42
 
@@ -39,24 +33,24 @@ def fit_predict(x_train, y_train, x_test):
 
     predictors = [
         make_pipeline(
-             RobustScaler(),
+            RobustScaler(),
             RidgeCV(alphas=ridge_alphas, cv=kfolds, fit_intercept=True)),
         make_pipeline(
-             RobustScaler(),
+            RobustScaler(),
             LassoCV(max_iter=1e8, alphas=lasso_alpha, verbose=True, random_state=RANDOM_STATE,
                     cv=kfolds, n_jobs=12, fit_intercept=True)),
         make_pipeline(
-             RobustScaler(),
+            RobustScaler(),
             ElasticNetCV(max_iter=1e7, alphas=e_alphas, verbose=True, random_state=RANDOM_STATE, cv=kfolds,
                          l1_ratio=e_l1ratio, n_jobs=12)),
         make_pipeline(
-             RobustScaler(),
+            RobustScaler(),
             GradientBoostingRegressor(n_estimators=3000, verbose=True, learning_rate=0.02,
                                       max_depth=4, max_features='sqrt',
                                       min_samples_leaf=15, min_samples_split=50,
                                       loss='huber', random_state=5)),
         make_pipeline(
-             RobustScaler(),
+            RobustScaler(),
             BayesianRidge(fit_intercept=True, verbose=True, n_iter=10000))
     ]
 
@@ -102,17 +96,17 @@ def fit_predict(x_train, y_train, x_test):
 
 # %% Build stack gen model
 def get_stack_gen_model():
-    kfolds = KFold(n_splits=10, shuffle=True, random_state=RANDOM_STATE)
+    kfolds = KFold(n_splits=42, shuffle=True, random_state=RANDOM_STATE)
 
     # TODO  QUELLO CHE HA FATTO SCENDERE SOTTO LA SOGLIA DI 113 È QUESTO ALPHA! O.O
     meta = Lasso(alpha=0.0007, random_state=RANDOM_STATE, max_iter=50000)
     meta_regr = make_pipeline(
-         RobustScaler(),
+        RobustScaler(),
         meta)
 
-    ridge = Ridge(alpha=15.0, fit_intercept=True)
-    lasso = Lasso(alpha=0.0003, random_state=RANDOM_STATE, max_iter=50000)
-    elasti = ElasticNet(alpha=4.0, l1_ratio=0.005, random_state=3)
+    ridge = Ridge(alpha=7.0, fit_intercept=True)
+    lasso = Lasso(alpha=0.00143, random_state=RANDOM_STATE, max_iter=50000)
+    elasti = ElasticNet(alpha=4.0, l1_ratio=0.007, random_state=3)
     grad = GradientBoostingRegressor(n_estimators=3000, learning_rate=0.02,
                                      max_depth=4, max_features='sqrt',
                                      min_samples_leaf=15, min_samples_split=50,
@@ -121,19 +115,19 @@ def get_stack_gen_model():
 
     predictors = [
         make_pipeline(
-             RobustScaler(),
+            RobustScaler(),
             ridge),
         make_pipeline(
-             RobustScaler(),
+            RobustScaler(),
             lasso),
         make_pipeline(
-             RobustScaler(),
+            RobustScaler(),
             elasti),
         make_pipeline(
-             RobustScaler(),
+            RobustScaler(),
             grad),
         make_pipeline(
-             RobustScaler(),
+            RobustScaler(),
             baye),
     ]
 
@@ -141,7 +135,7 @@ def get_stack_gen_model():
     stack_gen = StackingCVRegressor(regressors=predictors,
                                     meta_regressor=meta_regr,
                                     use_features_in_secondary=True,
-                                    cv=kfolds )
+                                    cv=kfolds)
     return stack_gen
 
 
@@ -156,10 +150,11 @@ def approximate(preds):
             int_price -= remainder
 
         return int_price
+
     return np.asarray([_transform(x) for x in preds])
 
 
-def quantile_reductions(predictions, max_tresh=0.0042, max_norm=0.77, min_tresh=0.99, min_norm =1.1):
+def quantile_reductions(predictions, max_tresh=0.0042, max_norm=0.77, min_tresh=0.99, min_norm=1.1):
     predictions_df = pd.DataFrame()
     predictions_df['norm'] = predictions
     q1 = predictions_df['norm'].quantile(max_tresh)
